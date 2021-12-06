@@ -1,4 +1,4 @@
-import { isEmpty, isUndefined, upperFirst } from "lodash";
+import { isEmpty, isUndefined, keys, upperFirst } from "lodash";
 import {
   QueryCallback,
   QueryWhere,
@@ -7,12 +7,16 @@ import {
   QueryField,
   QueryVariable,
   ModelType,
+  Hooks,
+  MethodArgs,
+  Attributes,
 } from "../types";
 import { Query } from "../graphql";
 import { ArgumentsBucket } from "../graphql/ArgumentsBucket";
 import { Attribute } from "../attributes";
 import { error } from "./errors";
 import { isFloat } from ".";
+import { Adapter } from "src";
 
 export function isRelationshipField(field: Attribute): boolean {
   return !!field.model;
@@ -139,4 +143,46 @@ export function getOperation(
   }
 
   return `${field.operation}${vars}{${fields.join(",")}}`;
+}
+
+type WillMutateLifecycleHooks = Pick<Hooks, "$creating" | "$updating">;
+export function willMutateLifecycleHook<
+  M extends keyof WillMutateLifecycleHooks,
+  A extends MethodArgs<WillMutateLifecycleHooks, M>
+>(model: ModelType, name: M, args: A): Attributes | false {
+  const hook = model.getHook(name) as WillMutateLifecycleHooks[M];
+
+  if (!hook) {
+    return args[1] || {};
+  }
+
+  const directive = hook(args[0], args[1]);
+
+  if (directive === false) {
+    return false;
+  }
+
+  return args[1] || {};
+}
+
+type MutatedLifecycleHooks = Pick<Hooks, "$created" | "$updated" | "$deleted">;
+export function mutatedLifecycleHook<
+  M extends keyof MutatedLifecycleHooks,
+  A extends MethodArgs<MutatedLifecycleHooks, M>
+>(model: ModelType, name: M, args: A) {
+  const hook = model.getHook(name) as MutatedLifecycleHooks[M];
+  if (hook) {
+    hook(args[0]);
+  }
+}
+
+type WillEraseLifecycleHooks = Pick<Hooks, "$deleting">;
+export function willEraseLifecycleHook<
+  M extends keyof WillEraseLifecycleHooks,
+  A extends MethodArgs<WillEraseLifecycleHooks, M>
+>(model: ModelType, name: M, args: A) {
+  const hook = model.getHook(name) as WillEraseLifecycleHooks[M];
+  if (hook) {
+    return hook(args[0]);
+  }
 }

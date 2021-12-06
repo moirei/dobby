@@ -36,6 +36,10 @@ You can install the package via npm:
 npm i @moirei/dobby
 ```
 
+## Changelog
+
+Please see [CHANGELOG](./CHANGELOG.md).
+
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.

@@ -24,3 +24,14 @@ export interface FieldListCache {
   attributes?: string[];
   relationships?: string[];
 }
+
+export type Hooks = Partial<
+  Omit<Adapter, "executeHook"> & {
+    $creating(model: Model, data: Attributes): void | Attributes | false;
+    $created(model: Model): void;
+    $updating(model: Model, data: Attributes): void | Attributes | false;
+    $updated(model: Model): void;
+    $deleting(model: Model): void | false;
+    $deleted(model: Model): void;
+  }
+>;

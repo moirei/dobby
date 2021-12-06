@@ -86,6 +86,41 @@ const object = user.$toJson();
 This will return all attribute values, including the JSON objects of related models.
 
 
+
+### Hot Find Unique
+
+To retrieve a model and quickly return an instance while its contents are being fetched, you may use the `hotFindUnque` method.
+
+```javascript
+class User extends Model{
+  ...
+  get $loaded(){
+    return !!this.$getKey()
+  }
+}
+```
+
+```javascript
+const user = User.hotFindUnque({ id: 1 })
+this.$loaded // return false
+
+// wait x ms
+this.$loaded // return true
+```
+
+This setup may prove useful in reactive frontends.
+
+The method is not included in the Query Builder and can therefore only be used directly from a model class. To provide more query options you pass the a second argument which receives the query.
+
+```javascript
+const user = User.hotFindUnque({ id: 1 }, query => {
+  query.select('*').include('*')
+})
+```
+
+
+
+
 ## Count
 
 You can also count records with the `count` method. This performs the `findMany` operation with the model's primary key as the only selected field.

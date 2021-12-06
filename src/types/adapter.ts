@@ -3,8 +3,8 @@ import { Adapter } from "../adapters";
 
 export type AdapterMethod = keyof Adapter;
 
-type ArgumentTypes<T> = T extends (...a: infer A) => Query | void ? A : never;
+type ArgumentTypes<T> = T extends (...a: infer A) => any ? A : never;
 
-export type AdapterMethodArgs<A extends AdapterMethod> = ArgumentTypes<
-  Adapter[A]
->;
+export type MethodArgs<T, K extends keyof T> = ArgumentTypes<T[K]>;
+
+export type AdapterMethodArgs<A extends AdapterMethod> = MethodArgs<Adapter, A>;

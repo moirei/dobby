@@ -5,6 +5,9 @@ import {
   resolveValueType,
   resolveQueryVariables,
   getOperation,
+  willMutateLifecycleHook,
+  mutatedLifecycleHook,
+  willEraseLifecycleHook,
 } from "../utils";
 import {
   QueryVariable,
@@ -313,14 +316,29 @@ export class Query {
    * @return {Promise<Model>}
    */
   async create(data: Attributes): Promise<Model> {
-    const model: Attributes = await this.callAdapterMethod("create", [
+    const model = this.model.make();
+
+    const createData = await willMutateLifecycleHook(this.model, "$creating", [
+      model,
       data,
+    ]);
+
+    if (createData === false) {
+      return model;
+    }
+
+    const created = await this.callAdapterMethod("create", [
+      createData,
       this,
       this.model,
     ])
       .add(this.model.primaryKey) // always add primary key to selects
       .get();
-    return this.model.make(model);
+
+    model.$fillOriginal(created);
+    mutatedLifecycleHook(this.model, "$created", [model]);
+
+    return model;
   }
 
   /**
@@ -330,13 +348,16 @@ export class Query {
    * @return {Promise<Model[]>}
    */
   async createMany(data: Attributes[]): Promise<Model[]> {
+    const createManyData = data;
+
     const models: Attributes[] = await this.callAdapterMethod("createMany", [
-      data,
+      createManyData,
       this,
       this.model,
     ])
       .add(this.model.primaryKey) // always add primary key to selects
       .get();
+
     return (models || []).map((model) => this.model.make(model));
   }
 
@@ -369,12 +390,23 @@ export class Query {
    */
   async update(
     args?: number | string | Attributes,
-    data?: number | string | Attributes,
+    data?: Attributes,
     model?: Model
-  ) {
+  ): Promise<Model> {
     if (model) {
-      await this.callAdapterMethod("$update", [data, this, model]).get();
-      return model;
+      const updateData = willMutateLifecycleHook(this.model, "$updating", [
+        model,
+        data || {},
+      ]);
+      if (updateData === false) return model;
+      await this.callAdapterMethod("$update", [
+        updateData,
+        this,
+        model as Model,
+      ]).get();
+
+      model.$fill(updateData);
+      model.$keepChanges();
     } else {
       const update: Attributes = await this.callAdapterMethod("update", [
         args,
@@ -382,8 +414,12 @@ export class Query {
         this,
         this.model,
       ]).get();
-      return this.model.make(update);
+      model = this.model.make(update);
     }
+
+    mutatedLifecycleHook(this.model, "$updated", [model]);
+
+    return model;
   }
 
   /**
@@ -426,7 +462,17 @@ export class Query {
    */
   async delete(args?: number | string | Attributes, model?: Model) {
     if (model) {
-      return this.callAdapterMethod("$delete", [this, model]).get();
+      if (willEraseLifecycleHook(this.model, "$deleting", [model]) === false)
+        return model;
+
+      const deleted = await this.callAdapterMethod("$delete", [
+        this,
+        model,
+      ]).get();
+
+      mutatedLifecycleHook(this.model, "$deleted", [model]);
+
+      return deleted;
     }
     return this.callAdapterMethod("delete", [args, this, this.model]).get();
   }

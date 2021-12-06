@@ -195,6 +195,55 @@ await user.$save();
 user.$isDirty(); // false
 ```
 
+To include dirty state of related models, use the `$isDeepDirty` method.
+
+```javascript
+if(user.$isDeepDirty()){
+  //
+}
+```
+
+If you would like to keep the changes without calling `$save`, you can use the `$keepChanges` method.
+
+```javascript
+user.name = 'John'
+user.$keepChanges()
+user.$isDirty(); // false
+```
+
+
+
+## Copying and Hydration
+
+It is possible to define a model and later hydrate its content with a query result.
+
+```javascript
+const user1 = new User({ 
+  id: 1, 
+  name: 'Joe Blow', 
+})
+const user2 = new User()
+```
+
+This will perform a `findUnique` operation under the hood and then copy its results.
+
+```javascript
+await user2.$hydrateWith({ id: 2 })
+```
+
+The `$hydrateWith` method supports arguments similar to the `findUnique` method. 
+
+Now that `user2` is hydrate, its content can also be copied to `user1`.
+
+```javascript
+user1.$copy(user2)
+
+user1.id // returns "2"
+user1.name // returns "John Doe"
+```
+
+
+
 
 ## Comparing Models
 
@@ -209,6 +258,7 @@ if (user.$isNot(anotherUser)) {
   //
 }
 ```
+
 
 
 ## Retrieving Instance Constructor

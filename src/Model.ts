@@ -25,6 +25,7 @@ import {
   FieldListCache,
   ModelType,
   Enumerable,
+  Hooks,
 } from "./types";
 import {
   addQueryOptions,
@@ -32,11 +33,13 @@ import {
   error,
   isChanged,
   isRelationshipField,
+  willMutateLifecycleHook,
 } from "./utils";
 import { Client } from "./graphql/Client";
 import { Adapter } from "./adapters/Adapter";
 import { ModelAttribute } from "./attributes/ModelAttribute";
 import { cloneDeep, omit } from "lodash";
+import { Hook } from "mocha";
 
 export abstract class Model {
   [attribute: string]: any;
@@ -165,7 +168,7 @@ export abstract class Model {
   /**
    * Query execution hooks.
    */
-  static hooks(): Partial<Adapter> {
+  static hooks(): Hooks {
     return {};
   }
 
@@ -293,9 +296,9 @@ export abstract class Model {
   /**
    * Get the Model adapter hooks from the cache.
    *
-   * @return {Partial<Adapter>}
+   * @return {Hooks}
    */
-  public static getHooks(): Partial<Adapter> {
+  public static getHooks(): Hooks {
     if (!this.cachedHooks) {
       this.cachedHooks = {};
     }
@@ -323,11 +326,9 @@ export abstract class Model {
    * Get a defined hook method.
    *
    * @param {string} hook
-   * @return {Adapter}
+   * @return {Hooks[K]}
    */
-  public static getHook<K extends keyof Adapter>(
-    field: K
-  ): Partial<Adapter>[K] {
+  public static getHook<K extends keyof Hooks>(field: K): Hooks[K] {
     return this.getHooks()[field];
   }
 
@@ -570,6 +571,25 @@ export abstract class Model {
   }
 
   /**
+   * Hot find unique.
+   * Return an instance immediately and hidrate when content is retrieved.
+   *
+   * @param {QueryWhere} where
+   * @param {QueryCallback} callback
+   * @param {Attributes} defaults
+   * @return {Model}
+   */
+  static hotFindUnique(
+    where: QueryWhere,
+    callback: QueryCallback,
+    defaults: Attributes = {}
+  ): Model {
+    const model = this.make(defaults);
+    model.$hydrateWith(where, callback);
+    return model;
+  }
+
+  /**
    * Alias of findUnique.
    * Find unique model.
    *
@@ -649,7 +669,7 @@ export abstract class Model {
    */
   public static async update(
     args: number | string | Attributes,
-    data: number | string | Attributes
+    data: Attributes
   ) {
     return this.newQuery().update(args, data);
   }
@@ -678,6 +698,62 @@ export abstract class Model {
    */
   public $newQuery(): Query {
     return this.$self().newQuery();
+  }
+
+  /**
+   * Execute a findUnique operation and hidrate with results.
+   *
+   * @param {number|string|Attributes} args
+   * @param {string[]|QueryCallback} selects
+   * @param {string[]} includes
+   */
+  async $hydrateWith(
+    args: number | string | Attributes,
+    selects?: string[] | QueryCallback,
+    includes?: string[]
+  ): Promise<boolean> {
+    const query = this.$newQuery();
+
+    addQueryOptions(query, selects, includes);
+    const instance = await query.findUnique(args);
+
+    if (!instance) {
+      return false;
+    }
+
+    this.$copy(instance);
+
+    return true;
+  }
+
+  /**
+   * Alias of hydrateWith.
+   * Execute a findUnique operation and hidrate with results.
+   *
+   * @param {number|string|Attributes} args
+   * @param {string[]|QueryCallback} selects
+   * @param {string[]} includes
+   */
+  async $hidrateWith(
+    args: number | string | Attributes,
+    selects?: string[] | QueryCallback,
+    includes?: string[]
+  ): Promise<boolean> {
+    return this.$hydrateWith(args, selects, includes);
+  }
+
+  /**
+   * Copy the contents of the model.
+   *
+   * @param {Model} model
+   * @returns {Model}
+   */
+  public $copy(model: Model): Model {
+    if (model instanceof this.$self()) {
+      this.$fillOriginal(model.$toJson());
+    }
+
+    return this;
   }
 
   /**
@@ -721,7 +797,7 @@ export abstract class Model {
    * @param {Attributes} attributes
    * @returns {this}
    */
-  protected $fillOriginal(attributes: Attributes) {
+  public $fillOriginal(attributes: Attributes) {
     this.original = mergeDeep(
       this.original,
       this.$filterAttributes(attributes)
@@ -759,7 +835,7 @@ export abstract class Model {
   /**
    * Keep the changes made to the model.
    */
-  protected $keepChanges() {
+  public $keepChanges() {
     if (!this.$isDirty()) return false;
     this.original = mergeDeep(this.original, this.changes);
     this.changes = {};
@@ -828,7 +904,7 @@ export abstract class Model {
    */
   public async $save() {
     if (this.$exists()) {
-      this.$update(omit(this.attributes, [this.$getKeyName()]));
+      await this.$update(omit(this.attributes, [this.$getKeyName()]));
     } else {
       const data = await this.$self().create(this.attributes);
       this.$fillOriginal(data.$getAttributes());
@@ -850,9 +926,8 @@ export abstract class Model {
 
     return new Promise((resolve) => {
       this.$newQuery()
-        .update(undefined, this.changes, this)
+        .update(undefined, cloneDeep(this.changes), this)
         .then((update) => {
-          this.$keepChanges();
           resolve(update);
         });
     });
@@ -909,6 +984,15 @@ export abstract class Model {
   }
 
   /**
+   * Get change attribute values.
+   *
+   * @returns {Attributes}
+   */
+  public $getChanges(): Attributes {
+    return this.changes;
+  }
+
+  /**
    * Compaire the model with another.
    *
    * @param {Model} model
@@ -942,6 +1026,32 @@ export abstract class Model {
   }
 
   /**
+   * Check dirty state with deep relationships.
+   *
+   * @returns {boolean}
+   */
+  public $isDeepDirty(): boolean {
+    let isDirty = isChanged(this.original, this.changes);
+
+    if (!isDirty) {
+      for (const name of Object.keys(this.relationships)) {
+        const relationship = this.relationships[name];
+        if (Array.isArray(relationship)) {
+          for (const rel of relationship) {
+            isDirty = rel.$isDeepDirty();
+            if (isDirty) break;
+          }
+        } else {
+          isDirty = relationship.$isDeepDirty();
+        }
+        if (isDirty) break;
+      }
+    }
+
+    return isDirty;
+  }
+
+  /**
    * Whether the model attributes (or the provided attribute) is clean.
    *
    * @param {string} attribute
@@ -949,6 +1059,15 @@ export abstract class Model {
    */
   public $isClean(attribute?: string): boolean {
     return !this.$isDirty(attribute);
+  }
+
+  /**
+   * Check clean state with deep relationships.
+   *
+   * @returns {boolean}
+   */
+  public $isDeepClean(): boolean {
+    return !this.$isDeepDirty();
   }
 
   /**
