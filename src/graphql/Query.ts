@@ -1,0 +1,818 @@
+import { FetchPolicy } from "apollo-client";
+import { has, isArray } from "lodash";
+import {
+  error,
+  resolveValueType,
+  resolveQueryVariables,
+  getOperation,
+} from "../utils";
+import {
+  QueryVariable,
+  QueryWhere,
+  SelectOptions,
+  QueryCallback,
+  QueryInclude,
+  ModelType,
+  QueryType,
+  QueryArguments,
+  QueryRelationships,
+  QueryField,
+  Attributes,
+  QueryFields,
+  AdapterMethod,
+  AdapterMethodArgs,
+} from "../types";
+import { ArgumentsBucket } from "./ArgumentsBucket";
+import { Client } from "./Client";
+import { Adapter } from "../adapters";
+import { Model } from "../Model";
+
+interface QueryResponseParser {
+  (response?: any): any;
+}
+
+export class Query {
+  /**
+   * Query arguments.
+   */
+  protected arguments: QueryArguments = {};
+
+  /**
+   * Selected query fields.
+   */
+  protected selects: string[] = [];
+
+  /**
+   * Included query relationships.
+   */
+  protected relationships: QueryRelationships = {};
+
+  /**
+   * Client fetch policy.
+   */
+  protected fetchPolicy: FetchPolicy;
+
+  /**
+   * The query type
+   */
+  protected queryType: QueryType = QueryType.QUERY;
+
+  /**
+   * The preset query operation.
+   */
+  protected queryOperation?: string;
+
+  /**
+   * The maximum query depth.
+   */
+  protected maxQueryDepth: number;
+
+  /**
+   * Make auto-resolved argument types required by default.
+   */
+  protected argumentRequiredByDefault: boolean = false;
+
+  /**
+   * Optioanl query result parser.
+   */
+  protected parser?: QueryResponseParser;
+
+  /**
+   * Get the model adapter.
+   */
+  protected get adapter(): Adapter | never {
+    if (!this.model.client) {
+      error("No query client available. Ensure model has been registered.");
+    }
+    return this.model.client.adapter;
+  }
+
+  constructor(
+    protected model: ModelType,
+    dynamicQueryOperations: boolean = false,
+    protected queryDepth: number = 0,
+    maxQueryDepth?: number
+  ) {
+    this.fetchPolicy = model.fetchPolicy;
+    this.argumentRequiredByDefault = model.argumentRequiredByDefault;
+    this.maxQueryDepth = maxQueryDepth || model.maxQueryDepth;
+
+    if (dynamicQueryOperations) {
+      return new Proxy(this, {
+        get(query: Query, prop: string) {
+          if (prop in query) {
+            // @ts-ignore
+            return Reflect.get(...arguments);
+          }
+
+          return (...args: any) => query.operation(prop).get(...args);
+        },
+      });
+    }
+  }
+
+  /**
+   * Make a new Query instance.
+   *
+   * @param {ModelType} model the model entity
+   * @param {boolean} queryDepth
+   * @returns {Query}
+   */
+  public static make(
+    model: ModelType,
+    dynamicQueryOperations: boolean = false,
+    queryDepth: number = 0,
+    maxQueryDepth?: number
+  ): Query {
+    return new Query(model, dynamicQueryOperations, queryDepth, maxQueryDepth);
+  }
+
+  /**
+   * Add arguments to the query.
+   *
+   * @param {string|QueryWhere} args
+   * @param {number|string|boolean|QueryVariable} value
+   */
+  public where(args: QueryWhere): Query;
+  public where(
+    argument: string,
+    value: number | string | boolean | QueryVariable
+  ): Query;
+  public where(
+    argument: string | QueryWhere,
+    value?: number | string | boolean | QueryVariable
+  ): Query {
+    if (typeof argument === "string") {
+      let options: QueryVariable;
+      if (typeof value === "object") {
+        options = value;
+      } else {
+        options = {
+          type: resolveValueType(value, true),
+          value: value,
+          required: this.argumentRequiredByDefault,
+        };
+      }
+      this.arguments[argument] = options;
+    } else {
+      for (const arg in argument) {
+        this.where(arg, argument[arg]);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Select fields to include in the query.
+   *
+   * @param {...SelectOptions[]} selects
+   * @returns
+   */
+  public select(...selects: SelectOptions[]): Query {
+    const selected = selects.flat().map((field) => field.trim());
+    if (selected.includes("*")) {
+      this.selects = this.model.fieldAttributes;
+      return this;
+    }
+    const fields = this.model.fieldAttributes;
+    this.selects = selected.filter((field) => fields.includes(field));
+
+    return this;
+  }
+
+  /**
+   * Add fields to include in the query.
+   *
+   * @param {...SelectOptions[]} selects
+   * @returns
+   */
+  public add(...selects: SelectOptions[]): Query {
+    const selected = selects.flat().map((field) => field.trim());
+    if (selected.includes("*")) {
+      return this.select("*");
+    }
+    const fields = this.model.fieldAttributes;
+
+    this.selects.push.apply(
+      this.selects,
+      selected
+        .filter((field) => fields.includes(field)) // fitler out non field values
+        .filter((field) => !this.selects.includes(field)) // filter our existing values
+    );
+
+    return this;
+  }
+
+  /**
+   * Remove fields to include in the query.
+   *
+   * @param {...SelectOptions[]} fields
+   * @returns
+   */
+  public remove(...fields: SelectOptions[]): Query {
+    const selected = fields.flat().map((field) => field.trim());
+    this.selects = this.selects.filter((field) => !selected.includes(field));
+
+    return this;
+  }
+
+  /**
+   * Include relationships to the query.
+   *
+   * @param {string|string[]|Record<string,QueryInclude|boolean>} relationship
+   * @param {string[]|QueryInclude|QueryCallback} selects
+   * @param {string[]} relationships
+   */
+  public include(relationship: string | string[]): Query;
+  public include(relationships: Record<string, QueryInclude | boolean>): Query;
+  public include(
+    relationship: string,
+    selects?: QueryInclude | QueryCallback
+  ): Query;
+  public include(
+    relationship: string,
+    selects: string[],
+    relationships?: string[]
+  ): Query;
+  public include(
+    relationship: string | string[] | Record<string, QueryInclude | boolean>,
+    selects?: string[] | QueryInclude | QueryCallback,
+    relationships?: string[]
+  ): Query {
+    if (typeof relationship === "string") {
+      if (relationship === "*") {
+        this.newRelationships(this.model.fieldRelationships);
+        return this;
+      }
+
+      if (selects) {
+        if (typeof selects === "string") {
+          this.includeRelationshipWithFields(relationship, [selects]);
+        } else if (isArray(selects)) {
+          this.includeRelationshipWithFields(
+            relationship,
+            selects,
+            relationships
+          );
+        } else if (["object", "function"].includes(typeof selects)) {
+          this.includeQueryRelationship(relationship, selects);
+        }
+      } else {
+        this.newRelationship(relationship);
+      }
+    } else if (isArray(relationship)) {
+      if (relationship.includes("*")) {
+        this.newRelationships(this.model.fieldRelationships);
+      } else {
+        this.newRelationships(relationship);
+      }
+    } else if (typeof relationship === "object") {
+      return this.includeDefinedRelationships(relationship);
+    }
+
+    return this;
+  }
+
+  /**
+   * Alias of include.
+   * Include relationships to the query.
+   *
+   * @param {string|string[]|Record<string,QueryInclude|boolean>} relationship
+   * @param {string[]|QueryInclude|QueryCallback} selects
+   * @param {string[]} relationships
+   * @returns
+   */
+  public with(
+    relationship: string | string[] | Record<string, QueryInclude | boolean>,
+    selects?: string[] | QueryInclude | QueryCallback,
+    relationships?: string[]
+  ): Query {
+    return this.include(
+      relationship as any,
+      selects as any,
+      relationships as any
+    );
+  }
+
+  /**
+   * Execute "count" operation.
+   * @returns {number}
+   */
+  public async count(): Promise<number> {
+    const results = await this.select(this.model.primaryKey).findMany();
+    return results.length;
+  }
+
+  /**
+   * Execute "create" CRUD operation.
+   *
+   * @param {Attributes} data
+   * @return {Promise<Model>}
+   */
+  async create(data: Attributes): Promise<Model> {
+    const model: Attributes = await this.callAdapterMethod("create", [
+      data,
+      this,
+      this.model,
+    ]).get();
+    return this.model.make(model);
+  }
+
+  /**
+   * Execute "create" CRUD operation.
+   *
+   * @param {Attributes[]} data
+   * @return {Promise<Model[]>}
+   */
+  async createMany(data: Attributes[]): Promise<Model[]> {
+    const models: Attributes[] = await this.callAdapterMethod("createMany", [
+      data,
+      this,
+      this.model,
+    ]).get();
+    return (models || []).map((model) => this.model.make(model));
+  }
+
+  /**
+   * Execute "upsert" CRUD operation.
+   *
+   * @param {number|string|Attributes} args
+   * @param {number|string|Attributes} data
+   * @return {Promise<Model>}
+   */
+  async upsert(
+    args: number | string | Attributes,
+    data: number | string | Attributes
+  ): Promise<Model> {
+    const model: Attributes = await this.callAdapterMethod("upsert", [
+      args,
+      data,
+      this,
+      this.model,
+    ]).get();
+    return this.model.make(model);
+  }
+
+  /**
+   * Execute "update" CRUD operation.
+   *
+   * @param {number|string|Attributes} args
+   * @param {number|string|Attributes} data
+   * @param {Promise<Model>} model
+   */
+  async update(
+    args?: number | string | Attributes,
+    data?: number | string | Attributes,
+    model?: Model
+  ) {
+    if (model) {
+      await this.callAdapterMethod("$update", [data, this, model]).get();
+      return model;
+    } else {
+      const update: Attributes = await this.callAdapterMethod("update", [
+        args,
+        data,
+        this,
+        this.model,
+      ]).get();
+      return this.model.make(update);
+    }
+  }
+
+  /**
+   * Execute "findMany" CRUD operation.
+   *
+   * @return {Promise<Model[]}
+   */
+  async findMany(): Promise<Model[]> {
+    const models: Attributes[] = await this.callAdapterMethod("findMany", [
+      this,
+      this.model,
+    ]).get();
+    return (models || []).map((model) => this.model.make(model));
+  }
+
+  /**
+   * Execute "findUnique" CRUD operation.
+   *
+   * @param {any} args
+   * @return {Promise<Model | null>}
+   */
+  async findUnique(args: any): Promise<Model | null> {
+    const model: Attributes = await this.callAdapterMethod("findUnique", [
+      args,
+      this,
+      this.model,
+    ]).get();
+    if (model) {
+      return this.model.make(model);
+    }
+    return null;
+  }
+
+  /**
+   * Execute "delete" CRUD operation.
+   *
+   * @param {number|string|Attributes} args
+   * @param {number|string|Attributes} data
+   * @param {Promise<any>}
+   */
+  async delete(args?: number | string | Attributes, model?: Model) {
+    if (model) {
+      return this.callAdapterMethod("$delete", [this, model]).get();
+    }
+    return this.callAdapterMethod("delete", [args, this, this.model]).get();
+  }
+
+  /**
+   * Set the query operation.
+   *
+   * @param {string} operation
+   * @returns {Query}
+   */
+  public operation(operation: string): Query {
+    this.queryOperation = operation;
+    return this;
+  }
+
+  /**
+   * Set the query parser function.
+   *
+   * @param {QueryResponseParser} parser
+   * @returns {Query}
+   */
+  public parseWith(parser: QueryResponseParser): Query {
+    this.parser = parser;
+    return this;
+  }
+
+  /**
+   * Set the query type.
+   *
+   * @param {QueryType} type
+   * @returns {Query}
+   */
+  public type(type: QueryType): Query {
+    this.queryType = type;
+    return this;
+  }
+
+  /**
+   * Set the query fetch policy.
+   *
+   * @param {FetchPolicy} policy
+   * @returns {Query}
+   */
+  public policy(policy: FetchPolicy): Query {
+    this.fetchPolicy = policy;
+    return this;
+  }
+
+  /**
+   * Set the query type to be mutation.
+   *
+   * @returns {Query}
+   */
+  public mutation(): Query {
+    return this.type(QueryType.MUTATION);
+  }
+
+  /**
+   * Execute the query as a query.
+   *
+   * @param {string} name
+   * @param {string} operationName an optional name for the query
+   * @param {QueryWhere} extraVariables any extra variables to add to the query
+   */
+  public async query(
+    name: string,
+    operationName?: string | null,
+    extraVariables?: QueryWhere
+  ) {
+    return this.type(QueryType.QUERY)
+      .operation(name)
+      .get(operationName, extraVariables);
+  }
+
+  /**
+   * Execute the query as a mutation.
+   *
+   * @param {string} name
+   * @param {string} operationName an optional name for the query
+   * @param {QueryWhere} extraVariables any extra variables to add to the query
+   */
+  public async mutate(
+    name: string,
+    operationName?: string | null,
+    extraVariables?: QueryWhere
+  ) {
+    return this.type(QueryType.MUTATION)
+      .operation(name)
+      .get(operationName, extraVariables);
+  }
+
+  /**
+   * Execute the query.
+   *
+   * @throws {Error}
+   * @param {string} operationName an optional name for the query
+   * @param {QueryWhere} extraVariables any extra variables to add to the query
+   */
+  public async get(
+    operationName?: string | null,
+    extraVariables?: QueryWhere
+  ): Promise<any> {
+    if (!this.model.client) {
+      error("No client availaible for query.");
+    }
+    if (this.queryDepth > 0) {
+      error("Cannot execute a child query.");
+    }
+
+    const query = this.getQuery(operationName, extraVariables);
+
+    const result = await this.model.client.execute(
+      this.queryType,
+      query.query,
+      query.variables,
+      this.fetchPolicy
+    );
+
+    return this.parser ? this.parser(result) : result;
+  }
+
+  /**
+   * Whether the query is for a child node.
+   *
+   * @returns {boolean}
+   */
+  public isChildNode(): boolean {
+    return this.queryDepth > 0;
+  }
+
+  /**
+   * Get the defined query type.
+   *
+   * @returns {string}
+   */
+  public getQueryType(): string {
+    return this.queryType;
+  }
+
+  /**
+   * Get the query arguments.
+   *
+   * @returns {QueryArguments}
+   */
+  public getArguments(): QueryArguments {
+    return this.arguments;
+  }
+
+  /**
+   * Get the query fields.
+   *
+   * @returns {string[]}
+   */
+  public getSelects(): string[] {
+    if (!this.selects.length) {
+      // use model defaults if not already set
+      this.select(this.model.queryAttributes);
+    }
+    return this.selects;
+  }
+
+  /**
+   * Get the query's model relationships.
+   *
+   * @returns {QueryRelationships}
+   */
+  public getRelationships(): QueryRelationships {
+    if (this.queryDepth < this.maxQueryDepth) {
+      this.include(this.model.queryRelationships);
+    }
+    return this.relationships;
+  }
+
+  /**
+   * Get the query's model.
+   *
+   * @returns {ModelType}
+   */
+  public getModelType(): ModelType {
+    return this.model;
+  }
+
+  /**
+   * Get the executable query string and variables.
+   *
+   * @param {string} operationName an optional name for the query
+   * @param {QueryWhere} extraVariables any extra variables to add to the query
+   * @returns
+   */
+  public getQuery(
+    operationName?: string | null,
+    extraVariables?: QueryWhere
+  ): { query: string; variables: Record<string, any> } {
+    if (!this.queryOperation) {
+      error("Cannot get query without an operation defined.");
+    }
+
+    const type = this.queryType;
+    const variablesBucket = new ArgumentsBucket();
+    const options = this.getQueryObject(this.queryOperation);
+    if (extraVariables) {
+      options.variables = {
+        ...options.variables,
+        ...resolveQueryVariables(extraVariables),
+      };
+    }
+    const fields = getOperation(options, variablesBucket);
+    const bucket = variablesBucket.getContent();
+    const variables: Record<string, any> = {};
+    if (!operationName) operationName = "";
+
+    let vars = "";
+    const varsList: string[] = [];
+
+    if (!variablesBucket.isEmpty()) {
+      for (const v in bucket) {
+        varsList.push(`$${v}: ${bucket[v].name}`);
+        variables[v] = bucket[v].value;
+      }
+      vars = `(${varsList.join(",")})`;
+    }
+
+    return {
+      query: `${type} ${operationName}${vars}{${fields}}`,
+      variables,
+    };
+  }
+
+  protected newRelationship(name: string): Query | void {
+    if (
+      !has(this.relationships, name) &&
+      this.model.fieldRelationships.includes(name)
+    ) {
+      const field = this.model.getField(name);
+      if (field && field.model) {
+        const query = Query.make(
+          field.model,
+          false,
+          this.queryDepth + 1,
+          this.maxQueryDepth
+        );
+
+        this.relationships[name] = query;
+        return query;
+      }
+    }
+  }
+
+  protected newRelationships(names: string[]) {
+    names.forEach((name) => this.newRelationship(name));
+  }
+
+  protected selectByQuery(selects: QueryInclude): Query {
+    if (selects.select) {
+      if (typeof selects.select === "string") {
+        this.select(selects.select);
+      } else if (isArray(selects.select)) {
+        this.select(selects.select);
+      } else if (typeof selects.select === "object") {
+        const toSelect: string[] = [];
+        const toRemove: string[] = [];
+        for (const field in selects.select) {
+          const value = selects.select[field];
+          if (value === true) {
+            toSelect.push(field);
+          } else if (value === false) {
+            toRemove.push(field);
+          }
+        }
+        this.select(toSelect);
+        this.remove(toRemove);
+      }
+    }
+    if (selects.include) {
+      if (typeof selects.include === "string") {
+        this.include(selects.include);
+      } else if (isArray(selects.include)) {
+        this.include(selects.include);
+      } else if (typeof selects.include === "object") {
+        for (const field in selects.include) {
+          const value = selects.include[field];
+          if (typeof value === "boolean") {
+            if (value === true) {
+              this.newRelationship(field);
+            } else {
+              this.relationships[field] = false;
+            }
+          } else if (isArray(value)) {
+            this.includeRelationshipWithFields(field, value);
+          } else {
+            this.include(field, value);
+          }
+        }
+      }
+    }
+    if (selects.where) {
+      for (const field in selects.where) {
+        this.where(field, selects.where[field]);
+      }
+    }
+
+    return this;
+  }
+
+  protected includeRelationshipWithFields(
+    relationship: string,
+    selects: string[],
+    relationships?: string[]
+  ) {
+    const query = this.newRelationship(relationship);
+    if (query) {
+      query.select(selects);
+      if (relationships) {
+        query.include(relationships);
+      }
+    }
+    return this;
+  }
+
+  protected includeQueryRelationship(
+    relationship: string,
+    includes: QueryInclude | QueryCallback
+  ): Query {
+    const query = this.newRelationship(relationship);
+    if (query) {
+      if (typeof includes === "function") {
+        includes(query);
+      } else {
+        query.selectByQuery(includes);
+      }
+    }
+    return this;
+  }
+
+  protected includeDefinedRelationships(
+    relationships: Record<string, QueryInclude | boolean>
+  ): Query {
+    for (const name in relationships) {
+      if (relationships[name] === true) {
+        this.newRelationship(name);
+      } else if (relationships[name] === false) {
+        this.relationships[name] = false;
+      } else {
+        this.includeQueryRelationship(
+          name,
+          relationships[name] as QueryInclude
+        );
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Get the query content as structured data.
+   *
+   * @param {string} operation an operation name. e.g. findManyUsers
+   * @returns {QueryField}
+   */
+  public getQueryObject(operation: string): QueryField {
+    const relationships = this.getRelationships();
+    const fields: QueryFields = [...this.getSelects()];
+
+    for (const n in relationships) {
+      const relationship = relationships[n];
+      if (relationship === false) continue;
+      fields.push(relationship.getQueryObject(n));
+    }
+
+    return {
+      operation,
+      fields,
+      variables: this.arguments,
+    };
+  }
+
+  protected getClient(): Client | never {
+    if (!this.model.client) {
+      error(
+        "No client available for query model. Make sure the model has been registered."
+      );
+    }
+
+    return this.model.client;
+  }
+
+  protected callAdapterMethod<M extends AdapterMethod>(
+    method: M,
+    args: AdapterMethodArgs<M>
+  ): Query {
+    // @ts-ignore
+    const query = this.adapter[method](...args);
+    return query || this;
+  }
+}
