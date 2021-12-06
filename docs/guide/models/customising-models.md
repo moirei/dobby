@@ -37,7 +37,7 @@ const post = await Post.findUnqiue({ id: 1 })
 await post.$markAsPublic()
 
 if(post.isPublished){
-   // 
+  //
 }
 ```
 

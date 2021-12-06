@@ -20,14 +20,12 @@ class User extends Model {
 ```
 
 
-
 Its fields are `id`, `name` and `email`. Building queries will always ensure only the defined fields are selected.
 
 ```javascript
 const query = User.select(["id", "name", "email_verified"]);
 const selects = query.getSelects(); // returns ["id", "name"]
 ```
-
 
 
 ## Relationships
@@ -89,7 +87,6 @@ client.register(User, Post, Comment);
 ```
 
 
-
 Now uses can be retrieved with
 
 ```javascript
@@ -109,14 +106,11 @@ Since `Post` model eagerly loads `author`, this will execute the following query
 ```graphql
 query {
   users{
-    id, name, 
-    comments{ 
+    id, name,
+    comments{
       id, text,
       author{ id, name, email }
     }
   }
 }
 ```
-
-
-

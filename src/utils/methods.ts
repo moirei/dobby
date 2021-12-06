@@ -11,7 +11,7 @@ import {
 import { Query } from "../graphql";
 import { ArgumentsBucket } from "../graphql/ArgumentsBucket";
 import { Attribute } from "../attributes";
-import { error } from "./error";
+import { error } from "./errors";
 import { isFloat } from ".";
 
 export function isRelationshipField(field: Attribute): boolean {

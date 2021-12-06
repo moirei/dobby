@@ -1,4 +1,4 @@
-export * from "./error";
+export * from "./errors";
 export * from "./methods";
-export * from "./number";
+export * from "./numbers";
 export * from "./objects";

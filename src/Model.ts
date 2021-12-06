@@ -22,6 +22,7 @@ import {
   SelectOptions,
   QueryInclude,
   HookCache,
+  FieldListCache,
   ModelType,
   Enumerable,
 } from "./types";
@@ -39,11 +40,6 @@ import { cloneDeep, omit } from "lodash";
 
 export abstract class Model {
   [attribute: string]: any;
-
-  /**
-   * The model name.
-   */
-  protected readonly name: string = this.constructor.name;
 
   /**
    * The model's primary key.
@@ -91,6 +87,11 @@ export abstract class Model {
    * The cached action handlers of the model.
    */
   static cachedHooks?: HookCache;
+
+  /**
+   * The cached action handlers of the model.
+   */
+  static cachedFieldList?: FieldListCache;
 
   /**
    * The maximum query depth.
@@ -334,28 +335,40 @@ export abstract class Model {
    * Model fields that are relationships.
    */
   public static get fieldRelationships(): string[] {
-    const fields = this.getFields();
-    const relationships: string[] = [];
-    for (const name in this.getFields()) {
-      if (isRelationshipField(fields[name])) {
-        relationships.push(name);
+    if (!this.cachedFieldList) {
+      this.cachedFieldList = {};
+    }
+    if (!this.cachedFieldList.relationships) {
+      this.cachedFieldList.relationships = [];
+      const fields = this.getFields();
+      for (const name in fields) {
+        if (fields[name] && isRelationshipField(fields[name])) {
+          this.cachedFieldList.relationships.push(name);
+        }
       }
     }
-    return relationships;
+
+    return this.cachedFieldList.relationships;
   }
 
   /**
    * Model fields that are attributes.
    */
   public static get fieldAttributes(): string[] {
-    const fields = this.getFields();
-    const attributes: string[] = [];
-    for (const name in this.getFields()) {
-      if (!isRelationshipField(fields[name])) {
-        attributes.push(name);
+    if (!this.cachedFieldList) {
+      this.cachedFieldList = {};
+    }
+    if (!this.cachedFieldList.attributes) {
+      this.cachedFieldList.attributes = [];
+      const fields = this.getFields();
+      for (const name in fields) {
+        if (fields[name] && !isRelationshipField(fields[name])) {
+          this.cachedFieldList.attributes.push(name);
+        }
       }
     }
-    return attributes;
+
+    return this.cachedFieldList.attributes;
   }
 
   /**

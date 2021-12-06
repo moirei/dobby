@@ -47,7 +47,6 @@ const userName = user.name; // returns "JOHN DOE"
 ```
 
 
-
 ## Attributes
 
 ### Accessors & Mutators
@@ -64,7 +63,7 @@ class User extends Model {
       this.first_name = first_name
       this.last_name = last_name
   }
-    
+
   static fields() {
     return {
       ...
@@ -74,7 +73,6 @@ class User extends Model {
   }
 }
 ```
-
 
 
 Defined fields can also have their own getters and setters. Take a Json Scalar field for example,
@@ -93,7 +91,7 @@ class User extends Model {
           return value ? JSON.parse(String(value)) : null;
         },
       }),
-        
+
       // or
       meta: this.json(),
     };
@@ -127,7 +125,6 @@ user.$getAttribute("meta") // returns an object
 > Note that the `meta` value used to instantiate the User model above is a string.
 
 
-
 The provided field attributes allow providing an accessor as the only option.
 
 ```javascript
@@ -141,7 +138,6 @@ class User extends Model {
   }
 }
 ```
-
 
 
 ### Getting & Setting Attributes
@@ -177,16 +173,15 @@ This also applies any changes made by the field mutators.
 All defined fields are automatically directly accessible as object properties.
 
 ```javascript
-const name = user.name; 
+const name = user.name;
 user.name = 'John'
 user.verified = true // throws an error
 ```
 
 
-
 ### Filling Attributes
 
-Model instances can be mass filled by attribute values. 
+Model instances can be mass filled by attribute values.
 
 ```javascript
 const user = new User();
@@ -200,4 +195,40 @@ user.$fill({
 })
 ```
 
-Using `$fill`, Json field receives an Object rather than a raw string.
+Using `$fill`, JSON field receives an Object rather than a raw string.
+
+
+### Readonly Fields
+
+In some cases you might want to guard attributes values from being written to. This can be done when defining the model fields.
+
+```javascript
+class User extends Model {
+  static fields() {
+    return {
+      ...
+      verified: this.boolean().readonly(),
+    };
+  }
+}
+```
+
+Now this `verified` attribute cannot be written to.
+
+```javascript
+const user = new User({
+    ...
+    verified: false
+});
+
+user.verified = true // throws an error
+user.$setAttribute('verified', true) // is discarded
+```
+
+To check whether an attribute is writable, use the `$isWritable` method.
+
+```javascript
+if(user.$isWritable('verified')){
+  //
+}
+```

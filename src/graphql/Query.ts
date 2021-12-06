@@ -43,6 +43,11 @@ export class Query {
   protected selects: string[] = [];
 
   /**
+   * Additional selects query fields.
+   */
+  protected additionalSelects: string[] = [];
+
+  /**
    * Included query relationships.
    */
   protected relationships: QueryRelationships = {};
@@ -190,16 +195,13 @@ export class Query {
   public add(...selects: SelectOptions[]): Query {
     const selected = selects.flat().map((field) => field.trim());
     if (selected.includes("*")) {
-      return this.select("*");
+      this.additionalSelects = this.model.fieldAttributes;
+    } else {
+      this.additionalSelects.push.apply(
+        this.additionalSelects,
+        selected.filter((field) => !this.additionalSelects.includes(field)) // filter out existing values
+      );
     }
-    const fields = this.model.fieldAttributes;
-
-    this.selects.push.apply(
-      this.selects,
-      selected
-        .filter((field) => fields.includes(field)) // fitler out non field values
-        .filter((field) => !this.selects.includes(field)) // filter our existing values
-    );
 
     return this;
   }
@@ -315,7 +317,9 @@ export class Query {
       data,
       this,
       this.model,
-    ]).get();
+    ])
+      .add(this.model.primaryKey) // always add primary key to selects
+      .get();
     return this.model.make(model);
   }
 
@@ -330,7 +334,9 @@ export class Query {
       data,
       this,
       this.model,
-    ]).get();
+    ])
+      .add(this.model.primaryKey) // always add primary key to selects
+      .get();
     return (models || []).map((model) => this.model.make(model));
   }
 
@@ -579,7 +585,20 @@ export class Query {
       // use model defaults if not already set
       this.select(this.model.queryAttributes);
     }
-    return this.selects;
+
+    const selects = this.selects;
+
+    if (this.additionalSelects.length) {
+      const fields = this.model.fieldAttributes;
+      selects.push.apply(
+        selects,
+        this.additionalSelects
+          .filter((field) => fields.includes(field)) // fitler out non field values
+          .filter((field) => !selects.includes(field)) // filter out existing values
+      );
+    }
+
+    return selects;
   }
 
   /**

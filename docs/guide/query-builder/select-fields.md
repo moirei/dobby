@@ -15,7 +15,6 @@ User.select(['id', 'name']);
 ```
 
 
-
 ## Adding new fields
 
 The select method redefines the query fields. It overrides any previous selections.
@@ -30,7 +29,6 @@ User.select('id').add('name', 'email', ...);
 // or
 User.select('id').add(['name', 'email']);
 ```
-
 
 
 ## Select all fields

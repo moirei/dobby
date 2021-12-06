@@ -19,3 +19,8 @@ export interface FieldCache {
 export interface HookCache {
   [key: string]: Partial<Adapter>;
 }
+
+export interface FieldListCache {
+  attributes?: string[];
+  relationships?: string[];
+}

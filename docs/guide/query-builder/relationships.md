@@ -18,6 +18,18 @@ query.include('posts', ['id', 'name'])
 
 
 
+## Including All Relationships
+
+To include all relationships with their default configuration, use the wildcard syntax.
+
+```javascript
+query.include('*')
+
+// or
+query.includeAll()
+```
+
+
 ## Advanced Subqueries
 
 Included relationship's queries can be further defined with a callback as the second argument
@@ -50,11 +62,11 @@ query.include("posts", {
   // or
   select: ['id', 'content'],
   include: {
-      publisher: true,
-      comments: {
-          id: true,
-          text: true,
-      }
+    publisher: true,
+    comments: {
+      id: true,
+      text: true,
+    }
   },
   // or
   include: ['publisher', 'comments']
@@ -65,11 +77,10 @@ Multiple includes can also be made with
 
 ```javascript
 query.include({
-    posts: ['id', 'title'],
-    comments: {
-        select: ['id', 'text'],
-        include: ['author'],
-    }
+  posts: ['id', 'title'],
+  comments: {
+    select: ['id', 'text'],
+    include: ['author'],
+  }
 })
 ```
-

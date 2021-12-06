@@ -26,6 +26,15 @@ class User extends Model{
 }
 ```
 
+If you need to retrieve key name or value on a model instance, you may use the `$getKeyName` and `$getKey` methods.
+
+```javascript
+const user = new User({ handle: 'james-franco' })
+
+user.$getKeyName() // returns "handle"
+user.$getkey() // returns "james-franco"
+```
+
 
 
 ## Default Selects
@@ -187,7 +196,6 @@ user.$isDirty(); // false
 ```
 
 
-
 ## Comparing Models
 
 Dobby provides methods `$is` and `$isNot` to quickly compare models. It compares the model types and primary keys.
@@ -202,3 +210,13 @@ if (user.$isNot(anotherUser)) {
 }
 ```
 
+
+## Retrieving Instance Constructor
+
+For convenience, model instances can retrieve their constructor with the provided `$self` method.
+
+```javascript
+const user = new User();
+
+user.$self() // returns "class User extends Model{..}"
+```

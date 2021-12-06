@@ -70,10 +70,12 @@ export abstract class Attribute {
 
   public readonly(readonly: boolean = true) {
     this.isReadOnly = readonly;
+    return this;
   }
 
   public nullable() {
     this.isNullable = true;
+    return this;
   }
 
   public list(list: boolean = true) {

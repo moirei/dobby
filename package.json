@@ -4,9 +4,6 @@
   "description": "GraphQL data models made easy.",
   "private": false,
   "main": "build/index.js",
-  "exports": {
-    ".": "./build/index.js"
-  },
   "types": "build/index.d.ts",
   "files": [
     "build"
@@ -42,6 +39,9 @@
     "url": "https://github.com/moirei/dobby/issues"
   },
   "homepage": "https://github.com/moirei/dobby#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@types/lodash": "^4.14.161",
     "core-js": "^3.12.0",
