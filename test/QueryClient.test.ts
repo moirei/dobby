@@ -14,7 +14,7 @@ import {
 chai.use(spies);
 
 class TestAdapter extends DefaultAdapter {
-  findMany(query: Query, model: ModelType): Query | void {
+  findMany(query: Query<any>, model: ModelType): Query<any> | void {
     return this.executeHook(model, "findMany", [query, model], () => {
       const operation = plural(model.name).toLocaleLowerCase();
       query

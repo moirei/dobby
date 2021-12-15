@@ -1,27 +1,58 @@
-import { ModelType, AdapterMethod, AdapterMethodArgs } from "../types";
+import {
+  ModelType,
+  AdapterMethod,
+  AdapterMethodArgs,
+  ModelConstructor,
+} from "../types";
 import { Query } from "../graphql";
 import { Model } from "../Model";
 
 export abstract class Adapter {
-  abstract create(data: any, query: Query, model: ModelType): Query | void;
-  abstract createMany(data: any, query: Query, model: ModelType): Query | void;
+  abstract create(
+    data: any,
+    query: Query<ModelType>,
+    model: ModelType
+  ): Query<ModelType> | void;
+  abstract createMany(
+    data: any,
+    query: Query<ModelType>,
+    model: ModelType
+  ): Query<ModelType> | void;
   abstract upsert(
     args: any,
     data: any,
-    query: Query,
+    query: Query<ModelType>,
     model: ModelType
-  ): Query | void;
+  ): Query<ModelType> | void;
   abstract update(
     args: any,
     data: any,
-    query: Query,
+    query: Query<ModelType>,
     model: ModelType
-  ): Query | void;
-  abstract findMany(query: Query, model: ModelType): Query | void;
-  abstract findUnique(args: any, query: Query, model: ModelType): Query | void;
-  abstract delete(args: any, query: Query, model: ModelType): Query | void;
-  abstract $update(data: any, query: Query, model: Model): Query | void;
-  abstract $delete(query: Query, model: Model): Query | void;
+  ): Query<ModelType> | void;
+  abstract findMany(
+    query: Query<ModelType>,
+    model: ModelType
+  ): Query<ModelType> | void;
+  abstract findUnique(
+    args: any,
+    query: Query<ModelType>,
+    model: ModelType
+  ): Query<ModelType> | void;
+  abstract delete(
+    args: any,
+    query: Query<ModelType>,
+    model: ModelType
+  ): Query<ModelType> | void;
+  abstract $update(
+    data: any,
+    query: Query<ModelType>,
+    model: Model
+  ): Query<ModelType> | void;
+  abstract $delete(
+    query: Query<ModelType>,
+    model: Model
+  ): Query<ModelType> | void;
 
   /**
    * Execute a hook on a method.

@@ -15,3 +15,10 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - feat: add lifecycle hooks
 - feat: add `$isDeepDirty` method
 - feat: add `$getChanges` method
+
+
+## 1.2.1
+
+* fix: findUnique to use singular
+* feat: add `selectAll` method
+* feat: Model inheritance return types

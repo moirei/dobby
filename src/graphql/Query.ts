@@ -16,6 +16,7 @@ import {
   QueryCallback,
   QueryInclude,
   ModelType,
+  ModelConstructor,
   QueryType,
   QueryArguments,
   QueryRelationships,
@@ -34,7 +35,7 @@ interface QueryResponseParser {
   (response?: any): any;
 }
 
-export class Query {
+export class Query<T extends ModelConstructor<Model>> {
   /**
    * Query arguments.
    */
@@ -53,7 +54,7 @@ export class Query {
   /**
    * Included query relationships.
    */
-  protected relationships: QueryRelationships = {};
+  protected relationships: QueryRelationships<T> = {};
 
   /**
    * Client fetch policy.
@@ -96,7 +97,8 @@ export class Query {
   }
 
   constructor(
-    protected model: ModelType,
+    protected model: T,
+    // protected model: ModelType,
     dynamicQueryOperations: boolean = false,
     protected queryDepth: number = 0,
     maxQueryDepth?: number
@@ -107,7 +109,7 @@ export class Query {
 
     if (dynamicQueryOperations) {
       return new Proxy(this, {
-        get(query: Query, prop: string) {
+        get(query: Query<T>, prop: string) {
           if (prop in query) {
             // @ts-ignore
             return Reflect.get(...arguments);
@@ -124,14 +126,14 @@ export class Query {
    *
    * @param {ModelType} model the model entity
    * @param {boolean} queryDepth
-   * @returns {Query}
+   * @returns {Query<T>}
    */
-  public static make(
-    model: ModelType,
+  public static make<T extends ModelConstructor<Model>>(
+    model: T,
     dynamicQueryOperations: boolean = false,
     queryDepth: number = 0,
     maxQueryDepth?: number
-  ): Query {
+  ): Query<T> {
     return new Query(model, dynamicQueryOperations, queryDepth, maxQueryDepth);
   }
 
@@ -141,15 +143,15 @@ export class Query {
    * @param {string|QueryWhere} args
    * @param {number|string|boolean|QueryVariable} value
    */
-  public where(args: QueryWhere): Query;
+  public where(args: QueryWhere): Query<T>;
   public where(
     argument: string,
     value: number | string | boolean | QueryVariable
-  ): Query;
+  ): Query<T>;
   public where(
     argument: string | QueryWhere,
     value?: number | string | boolean | QueryVariable
-  ): Query {
+  ): Query<T> {
     if (typeof argument === "string") {
       let options: QueryVariable;
       if (typeof value === "object") {
@@ -177,7 +179,7 @@ export class Query {
    * @param {...SelectOptions[]} selects
    * @returns
    */
-  public select(...selects: SelectOptions[]): Query {
+  public select(...selects: SelectOptions[]): Query<T> {
     const selected = selects.flat().map((field) => field.trim());
     if (selected.includes("*")) {
       this.selects = this.model.fieldAttributes;
@@ -190,12 +192,22 @@ export class Query {
   }
 
   /**
+   * Select all fields in the query.
+   *
+   * @param {...SelectOptions[]} selects
+   * @returns {Query<T>}
+   */
+  public selectAll(): Query<T> {
+    return this.select("*");
+  }
+
+  /**
    * Add fields to include in the query.
    *
    * @param {...SelectOptions[]} selects
    * @returns
    */
-  public add(...selects: SelectOptions[]): Query {
+  public add(...selects: SelectOptions[]): Query<T> {
     const selected = selects.flat().map((field) => field.trim());
     if (selected.includes("*")) {
       this.additionalSelects = this.model.fieldAttributes;
@@ -215,7 +227,7 @@ export class Query {
    * @param {...SelectOptions[]} fields
    * @returns
    */
-  public remove(...fields: SelectOptions[]): Query {
+  public remove(...fields: SelectOptions[]): Query<T> {
     const selected = fields.flat().map((field) => field.trim());
     this.selects = this.selects.filter((field) => !selected.includes(field));
 
@@ -229,22 +241,24 @@ export class Query {
    * @param {string[]|QueryInclude|QueryCallback} selects
    * @param {string[]} relationships
    */
-  public include(relationship: string | string[]): Query;
-  public include(relationships: Record<string, QueryInclude | boolean>): Query;
+  public include(relationship: string | string[]): Query<T>;
+  public include(
+    relationships: Record<string, QueryInclude | boolean>
+  ): Query<T>;
   public include(
     relationship: string,
-    selects?: QueryInclude | QueryCallback
-  ): Query;
+    selects?: QueryInclude | QueryCallback<T>
+  ): Query<T>;
   public include(
     relationship: string,
     selects: string[],
     relationships?: string[]
-  ): Query;
+  ): Query<T>;
   public include(
     relationship: string | string[] | Record<string, QueryInclude | boolean>,
-    selects?: string[] | QueryInclude | QueryCallback,
+    selects?: string[] | QueryInclude | QueryCallback<T>,
     relationships?: string[]
-  ): Query {
+  ): Query<T> {
     if (typeof relationship === "string") {
       if (relationship === "*") {
         this.newRelationships(this.model.fieldRelationships);
@@ -290,9 +304,9 @@ export class Query {
    */
   public with(
     relationship: string | string[] | Record<string, QueryInclude | boolean>,
-    selects?: string[] | QueryInclude | QueryCallback,
+    selects?: string[] | QueryInclude | QueryCallback<T>,
     relationships?: string[]
-  ): Query {
+  ): Query<T> {
     return this.include(
       relationship as any,
       selects as any,
@@ -313,9 +327,9 @@ export class Query {
    * Execute "create" CRUD operation.
    *
    * @param {Attributes} data
-   * @return {Promise<Model>}
+   * @return {Promise<M>}
    */
-  async create(data: Attributes): Promise<Model> {
+  async create<M extends InstanceType<T>>(data: Attributes): Promise<M> {
     const model = this.model.make();
 
     const createData = await willMutateLifecycleHook(this.model, "$creating", [
@@ -329,7 +343,7 @@ export class Query {
 
     const created = await this.callAdapterMethod("create", [
       createData,
-      this,
+      this as any,
       this.model,
     ])
       .add(this.model.primaryKey) // always add primary key to selects
@@ -345,14 +359,16 @@ export class Query {
    * Execute "create" CRUD operation.
    *
    * @param {Attributes[]} data
-   * @return {Promise<Model[]>}
+   * @return {Promise<M[]>}
    */
-  async createMany(data: Attributes[]): Promise<Model[]> {
+  async createMany<M extends InstanceType<T>>(
+    data: Attributes[]
+  ): Promise<M[]> {
     const createManyData = data;
 
     const models: Attributes[] = await this.callAdapterMethod("createMany", [
       createManyData,
-      this,
+      this as any,
       this.model,
     ])
       .add(this.model.primaryKey) // always add primary key to selects
@@ -366,16 +382,16 @@ export class Query {
    *
    * @param {number|string|Attributes} args
    * @param {number|string|Attributes} data
-   * @return {Promise<Model>}
+   * @return {Promise<M>}
    */
-  async upsert(
+  async upsert<M extends InstanceType<T>>(
     args: number | string | Attributes,
     data: number | string | Attributes
-  ): Promise<Model> {
+  ): Promise<M> {
     const model: Attributes = await this.callAdapterMethod("upsert", [
       args,
       data,
-      this,
+      this as any,
       this.model,
     ]).get();
     return this.model.make(model);
@@ -386,13 +402,13 @@ export class Query {
    *
    * @param {number|string|Attributes} args
    * @param {number|string|Attributes} data
-   * @param {Promise<Model>} model
+   * @param {Promise<T>} model
    */
-  async update(
+  async update<M extends InstanceType<T>>(
     args?: number | string | Attributes,
     data?: Attributes,
-    model?: Model
-  ): Promise<Model> {
+    model?: M
+  ): Promise<M> {
     if (model) {
       const updateData = willMutateLifecycleHook(this.model, "$updating", [
         model,
@@ -401,7 +417,7 @@ export class Query {
       if (updateData === false) return model;
       await this.callAdapterMethod("$update", [
         updateData,
-        this,
+        this as any,
         model as Model,
       ]).get();
 
@@ -411,10 +427,10 @@ export class Query {
       const update: Attributes = await this.callAdapterMethod("update", [
         args,
         data,
-        this,
+        this as any,
         this.model,
       ]).get();
-      model = this.model.make(update);
+      model = this.model.make(update) as M;
     }
 
     mutatedLifecycleHook(this.model, "$updated", [model]);
@@ -425,11 +441,11 @@ export class Query {
   /**
    * Execute "findMany" CRUD operation.
    *
-   * @return {Promise<Model[]}
+   * @return {Promise<M[]}
    */
-  async findMany(): Promise<Model[]> {
+  async findMany<M extends InstanceType<T>>(): Promise<M[]> {
     const models: Attributes[] = await this.callAdapterMethod("findMany", [
-      this,
+      this as any,
       this.model,
     ]).get();
     return (models || []).map((model) => this.model.make(model));
@@ -439,12 +455,12 @@ export class Query {
    * Execute "findUnique" CRUD operation.
    *
    * @param {any} args
-   * @return {Promise<Model | null>}
+   * @return {Promise<M|null>}
    */
-  async findUnique(args: any): Promise<Model | null> {
+  async findUnique<M extends InstanceType<T>>(args: any): Promise<M | null> {
     const model: Attributes = await this.callAdapterMethod("findUnique", [
       args,
-      this,
+      this as any,
       this.model,
     ]).get();
     if (model) {
@@ -460,13 +476,16 @@ export class Query {
    * @param {number|string|Attributes} data
    * @param {Promise<any>}
    */
-  async delete(args?: number | string | Attributes, model?: Model) {
+  async delete<M extends InstanceType<T>>(
+    args?: number | string | Attributes,
+    model?: M
+  ) {
     if (model) {
       if (willEraseLifecycleHook(this.model, "$deleting", [model]) === false)
         return model;
 
       const deleted = await this.callAdapterMethod("$delete", [
-        this,
+        this as any,
         model,
       ]).get();
 
@@ -474,16 +493,20 @@ export class Query {
 
       return deleted;
     }
-    return this.callAdapterMethod("delete", [args, this, this.model]).get();
+    return this.callAdapterMethod("delete", [
+      args,
+      this as any,
+      this.model,
+    ]).get();
   }
 
   /**
    * Set the query operation.
    *
    * @param {string} operation
-   * @returns {Query}
+   * @returns {Query<T>}
    */
-  public operation(operation: string): Query {
+  public operation(operation: string): Query<T> {
     this.queryOperation = operation;
     return this;
   }
@@ -492,9 +515,9 @@ export class Query {
    * Set the query parser function.
    *
    * @param {QueryResponseParser} parser
-   * @returns {Query}
+   * @returns {Query<T>}
    */
-  public parseWith(parser: QueryResponseParser): Query {
+  public parseWith(parser: QueryResponseParser): Query<T> {
     this.parser = parser;
     return this;
   }
@@ -503,9 +526,9 @@ export class Query {
    * Set the query type.
    *
    * @param {QueryType} type
-   * @returns {Query}
+   * @returns {Query<T>}
    */
-  public type(type: QueryType): Query {
+  public type(type: QueryType): Query<T> {
     this.queryType = type;
     return this;
   }
@@ -514,9 +537,9 @@ export class Query {
    * Set the query fetch policy.
    *
    * @param {FetchPolicy} policy
-   * @returns {Query}
+   * @returns {Query<T>}
    */
-  public policy(policy: FetchPolicy): Query {
+  public policy(policy: FetchPolicy): Query<T> {
     this.fetchPolicy = policy;
     return this;
   }
@@ -524,9 +547,9 @@ export class Query {
   /**
    * Set the query type to be mutation.
    *
-   * @returns {Query}
+   * @returns {Query<T>}
    */
-  public mutation(): Query {
+  public mutation(): Query<T> {
     return this.type(QueryType.MUTATION);
   }
 
@@ -652,7 +675,7 @@ export class Query {
    *
    * @returns {QueryRelationships}
    */
-  public getRelationships(): QueryRelationships {
+  public getRelationships(): QueryRelationships<T> {
     if (this.queryDepth < this.maxQueryDepth) {
       this.include(this.model.queryRelationships);
     }
@@ -714,7 +737,7 @@ export class Query {
     };
   }
 
-  protected newRelationship(name: string): Query | void {
+  protected newRelationship(name: string): Query<ModelType> | void {
     if (
       !has(this.relationships, name) &&
       this.model.fieldRelationships.includes(name)
@@ -728,7 +751,7 @@ export class Query {
           this.maxQueryDepth
         );
 
-        this.relationships[name] = query;
+        this.relationships[name] = query as any;
         return query;
       }
     }
@@ -738,7 +761,7 @@ export class Query {
     names.forEach((name) => this.newRelationship(name));
   }
 
-  protected selectByQuery(selects: QueryInclude): Query {
+  protected selectByQuery(selects: QueryInclude): Query<T> {
     if (selects.select) {
       if (typeof selects.select === "string") {
         this.select(selects.select);
@@ -807,12 +830,12 @@ export class Query {
 
   protected includeQueryRelationship(
     relationship: string,
-    includes: QueryInclude | QueryCallback
-  ): Query {
+    includes: QueryInclude | QueryCallback<T>
+  ): Query<T> {
     const query = this.newRelationship(relationship);
     if (query) {
       if (typeof includes === "function") {
-        includes(query);
+        includes(query as any);
       } else {
         query.selectByQuery(includes);
       }
@@ -822,7 +845,7 @@ export class Query {
 
   protected includeDefinedRelationships(
     relationships: Record<string, QueryInclude | boolean>
-  ): Query {
+  ): Query<T> {
     for (const name in relationships) {
       if (relationships[name] === true) {
         this.newRelationship(name);
@@ -875,9 +898,9 @@ export class Query {
   protected callAdapterMethod<M extends AdapterMethod>(
     method: M,
     args: AdapterMethodArgs<M>
-  ): Query {
+  ): Query<T> {
     // @ts-ignore
-    const query = this.adapter[method](...args);
+    const query = this.adapter[method](...args) as Query<T>;
     return query || this;
   }
 }

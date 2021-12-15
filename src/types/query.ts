@@ -1,3 +1,5 @@
+import { ModelConstructor, ModelType } from "./model";
+import { Model } from "./../Model";
 import { Query } from "../graphql";
 
 export enum QueryType {
@@ -24,7 +26,10 @@ export type QueryArguments = Object & Record<string, QueryVariable>;
 
 export type QueryVariables = Object & Record<string, QueryVariable>;
 
-export type QueryRelationships = Record<string, Query | false>;
+export type QueryRelationships<M extends ModelConstructor<Model>> = Record<
+  string,
+  Query<M> | false
+>;
 
 export type QueryVariableType =
   | boolean
@@ -69,6 +74,6 @@ export interface QueryInclude {
   // };
 }
 
-export interface QueryCallback {
-  (query: Query): void | Query;
+export interface QueryCallback<M extends ModelConstructor<Model>> {
+  (query: Query<M>): void | Query<M>;
 }

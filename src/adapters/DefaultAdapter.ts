@@ -1,12 +1,12 @@
-import pluralize from "pluralize";
+import { singular, plural } from "pluralize";
 import { upperFirst } from "lodash";
-import { ModelType } from "../types";
+import { ModelType, ModelConstructor } from "../types";
 import { Query } from "../graphql";
 import { Adapter } from "./Adapter";
 import { Model } from "../Model";
 
 export class DefaultAdapter extends Adapter {
-  public create(data: any, query: Query, model: ModelType) {
+  public create(data: any, query: Query<ModelType>, model: ModelType) {
     return this.executeHook(model, "create", [data, query, model], () => {
       const operation = "createOne" + upperFirst(model.name);
       query
@@ -21,9 +21,9 @@ export class DefaultAdapter extends Adapter {
     });
   }
 
-  public createMany(data: any, query: Query, model: ModelType) {
+  public createMany(data: any, query: Query<ModelType>, model: ModelType) {
     return this.executeHook(model, "createMany", [data, query, model], () => {
-      const operation = "createMany" + pluralize(upperFirst(model.name));
+      const operation = "createMany" + plural(upperFirst(model.name));
       query
         .where("data", {
           type: "[" + upperFirst(model.name) + "CreateInput!]",
@@ -39,9 +39,9 @@ export class DefaultAdapter extends Adapter {
   public upsert(
     args: any,
     data: any,
-    query: Query,
+    query: Query<ModelType>,
     model: ModelType
-  ): Query | void {
+  ): Query<ModelType> | void {
     return this.executeHook(model, "upsert", [args, data, query, model], () => {
       const operation = "upsertOne" + upperFirst(model.name);
       query
@@ -66,9 +66,9 @@ export class DefaultAdapter extends Adapter {
   public update(
     args: any,
     data: any,
-    query: Query,
+    query: Query<ModelType>,
     model: ModelType
-  ): Query | void {
+  ): Query<ModelType> | void {
     return this.executeHook(model, "update", [args, data, query, model], () => {
       const operation = "updateOne" + upperFirst(model.name);
       query
@@ -90,17 +90,20 @@ export class DefaultAdapter extends Adapter {
     });
   }
 
-  public findMany(query: Query, model: ModelType): Query | void {
+  public findMany(
+    query: Query<ModelType>,
+    model: ModelType
+  ): Query<ModelType> | void {
     return this.executeHook(model, "findMany", [query, model], () => {
-      const operation = pluralize(model.name).toLocaleLowerCase();
+      const operation = plural(model.name).toLocaleLowerCase();
       query
         .operation(operation)
         .parseWith((response) => response.data[operation]);
     });
   }
 
-  public findUnique(args: any, query: Query, model: ModelType) {
-    const operation = "findOne" + upperFirst(model.name);
+  public findUnique(args: any, query: Query<ModelType>, model: ModelType) {
+    const operation = singular(model.name).toLocaleLowerCase();
     return this.executeHook(model, "findUnique", [args, query, model], () => {
       query
         .where("where", {
@@ -113,7 +116,7 @@ export class DefaultAdapter extends Adapter {
     });
   }
 
-  public delete(args: any, query: Query, model: ModelType) {
+  public delete(args: any, query: Query<ModelType>, model: ModelType) {
     return this.executeHook(model, "delete", [args, query, model], () => {
       const operation = "deleteOne" + upperFirst(model.name);
       query
@@ -128,7 +131,11 @@ export class DefaultAdapter extends Adapter {
     });
   }
 
-  public $update(data: any, query: Query, model: Model): Query | void {
+  public $update(
+    data: any,
+    query: Query<ModelType>,
+    model: Model
+  ): Query<ModelType> | void {
     return this.executeHook(
       model.$self(),
       "$update",
@@ -157,7 +164,7 @@ export class DefaultAdapter extends Adapter {
     );
   }
 
-  public $delete(query: Query, model: Model) {
+  public $delete(query: Query<ModelType>, model: Model) {
     return this.executeHook(model.$self(), "$delete", [query, model], () => {
       const operation = "deleteOne" + upperFirst(model.$self().name);
       query

@@ -24,6 +24,7 @@ import {
   HookCache,
   FieldListCache,
   ModelType,
+  ModelConstructor,
   Enumerable,
   Hooks,
 } from "./types";
@@ -89,7 +90,7 @@ export abstract class Model {
   /**
    * The cached action handlers of the model.
    */
-  static cachedHooks?: HookCache;
+  static cachedHooks?: HookCache<any>;
 
   /**
    * The cached action handlers of the model.
@@ -168,7 +169,7 @@ export abstract class Model {
   /**
    * Query execution hooks.
    */
-  static hooks(): Hooks {
+  static hooks<T extends ModelType>(this: T): Hooks<T> {
     return {};
   }
 
@@ -296,9 +297,9 @@ export abstract class Model {
   /**
    * Get the Model adapter hooks from the cache.
    *
-   * @return {Hooks}
+   * @return {Hooks<T>}
    */
-  public static getHooks(): Hooks {
+  public static getHooks<T extends ModelType>(this: T): Hooks<T> {
     if (!this.cachedHooks) {
       this.cachedHooks = {};
     }
@@ -328,7 +329,10 @@ export abstract class Model {
    * @param {string} hook
    * @return {Hooks[K]}
    */
-  public static getHook<K extends keyof Hooks>(field: K): Hooks[K] {
+  public static getHook<T extends ModelType, K extends keyof Hooks<T>>(
+    this: T,
+    field: K
+  ): Hooks<T>[K] {
     return this.getHooks()[field];
   }
 
@@ -375,9 +379,9 @@ export abstract class Model {
   /**
    * Start a new query.
    *
-   * @returns {Query}
+   * @returns {Query<ModelConstructor<T>>}
    */
-  public static newQuery(): Query {
+  public static newQuery<T extends ModelType>(this: T): Query<T> {
     return Query.make(this, this.dynamicQueryOperations);
   }
 
@@ -387,7 +391,7 @@ export abstract class Model {
    *
    * @returns {Query}
    */
-  public static query(): Query {
+  public static query<T extends ModelType>(this: T): Query<T> {
     return this.newQuery();
   }
 
@@ -395,10 +399,22 @@ export abstract class Model {
    * Start a new query with specific fields selected.
    *
    * @param {...string|string[]} selects
+   * @returns {Query<ModelConstructor<T>>}
+   */
+  static select<T extends ModelType>(
+    this: T,
+    ...selects: SelectOptions[]
+  ): Query<T> {
+    return this.newQuery().select(...selects);
+  }
+
+  /**
+   * Start a new query with all fields selected.
+   *
    * @returns {Query}
    */
-  public static select(...selects: SelectOptions[]): Query {
-    return this.newQuery().select(...selects);
+  static selectAll<T extends ModelType>(this: T): Query<T> {
+    return this.select("*");
   }
 
   /**
@@ -406,29 +422,45 @@ export abstract class Model {
    *
    * @returns {Query}
    */
-  public static include(relationship: string | string[]): Query;
-  public static include(
+  public static include<T extends ModelType>(
+    this: T,
+    relationship: string | string[]
+  ): Query<T>;
+  public static include<T extends ModelType>(
+    this: T,
     relationships: Record<string, QueryInclude | boolean>
-  ): Query;
-  public static include(
+  ): Query<T>;
+  public static include<T extends ModelType>(
+    this: T,
     relationship: string,
-    selects: QueryInclude | QueryCallback
-  ): Query;
-  public static include(
+    selects: QueryInclude | QueryCallback<ModelConstructor<T>>
+  ): Query<T>;
+  public static include<T extends ModelType>(
+    this: T,
     relationship: string,
     selects: string[],
     relationships?: string[]
-  ): Query;
-  public static include(
+  ): Query<T>;
+  public static include<T extends ModelType>(
+    this: T,
     relationship: string | string[] | Record<string, QueryInclude | boolean>,
-    selects?: string[] | QueryInclude | QueryCallback,
+    selects?: string[] | QueryInclude | QueryCallback<ModelConstructor<T>>,
     relationships?: string[]
-  ): Query {
+  ): Query<T> {
     return this.newQuery().include(
       relationship as any,
       selects as any,
       relationships as any
     );
+  }
+
+  /**
+   * Start a new query with all relationships included.
+   *
+   * @returns {Query<T>}
+   */
+  public static includeAll<T extends ModelType>(this: T): Query<T> {
+    return this.newQuery().include("*");
   }
 
   /**
@@ -440,11 +472,12 @@ export abstract class Model {
    * @param {string[]} relationships
    * @returns
    */
-  public static with(
+  public static with<T extends ModelType>(
+    this: T,
     relationship: string | string[] | Record<string, QueryInclude | boolean>,
-    selects?: string[] | QueryInclude | QueryCallback,
+    selects?: string[] | QueryInclude | QueryCallback<T>,
     relationships?: string[]
-  ): Query {
+  ): Query<T> {
     return this.include(
       relationship as any,
       selects as any,
@@ -453,21 +486,12 @@ export abstract class Model {
   }
 
   /**
-   * Start a new query with all relationships included.
-   *
-   * @returns {Query}
-   */
-  public static includeAll(): Query {
-    return this.newQuery().include("*");
-  }
-
-  /**
    * Alias of includeAll.
    * Start a new query with all relationships included.
    *
    * @returns {Query}
    */
-  public static withAll(): Query {
+  public static withAll<T extends ModelType>(this: T): Query<T> {
     return this.includeAll();
   }
 
@@ -478,15 +502,17 @@ export abstract class Model {
    * @param {number|string|QueryVariable} value
    * @returns
    */
-  public static where(args: QueryWhere): Query;
-  public static where(
+  public static where<T extends ModelType>(this: T, args: QueryWhere): Query<T>;
+  public static where<T extends ModelType>(
+    this: T,
     argument: string,
     value: number | string | boolean | QueryVariable
-  ): Query;
-  public static where(
+  ): Query<T>;
+  public static where<T extends ModelType>(
+    this: T,
     argument: string | QueryWhere,
     value?: number | string | boolean | QueryVariable
-  ): Query {
+  ): Query<T> {
     return this.newQuery().where(argument as any, value as any);
   }
 
@@ -496,20 +522,24 @@ export abstract class Model {
    * @param {Attributes} attributes
    * @returns
    */
-  public static new(attributes: Attributes = {}) {
+  public static make<T>(
+    this: ModelConstructor<T>,
+    attributes: Attributes = {}
+  ): T {
     // @ts-ignore
-    const model: Model = new this(attributes);
-    return model;
+    const model: T = new this(attributes);
+    return model as T;
   }
 
   /**
+   * Alias of make.
    * Make a new instance of the model.
    *
    * @param {Attributes} attributes
    * @returns
    */
-  public static make(attributes: Attributes = {}) {
-    return this.new(attributes);
+  public static new<T>(this: ModelConstructor<T>): T {
+    return this.make();
   }
 
   /**
@@ -517,12 +547,13 @@ export abstract class Model {
    *
    * @param {string[]|QueryCallback} selects
    * @param {string[]} includes
-   * @returns {Promise<Model[]>}
+   * @returns {Promise<T[]>}
    */
-  public static async findMany(
-    selects?: string[] | QueryCallback,
+  public static async findMany<T extends Model>(
+    this: ModelConstructor<T>,
+    selects?: string[] | QueryCallback<ModelConstructor<T>>,
     includes?: string[]
-  ): Promise<Model[]> {
+  ): Promise<T[]> {
     const query = this.newQuery();
     addQueryOptions(query, selects, includes);
     return query.findMany();
@@ -534,12 +565,13 @@ export abstract class Model {
    *
    * @param {string[]|QueryCallback} selects
    * @param {string[]} includes
-   * @returns {Promise<Model[]>}
+   * @returns {Promise<T[]>}
    */
-  public static async all(
-    selects?: string[] | QueryCallback,
+  public static async all<T extends Model>(
+    this: ModelConstructor<T>,
+    selects?: string[] | QueryCallback<ModelConstructor<T>>,
     includes?: string[]
-  ): Promise<Model[]> {
+  ): Promise<T[]> {
     return this.findMany(selects, includes);
   }
 
@@ -560,11 +592,12 @@ export abstract class Model {
    * @param {string[]} includes
    * @returns
    */
-  public static async findUnique(
+  public static async findUnique<T extends Model>(
+    this: ModelConstructor<T>,
     args: number | string | Attributes,
-    selects?: string[] | QueryCallback,
+    selects?: string[] | QueryCallback<ModelConstructor<T>>,
     includes?: string[]
-  ): Promise<Model | null> {
+  ): Promise<T | null> {
     const query = this.newQuery();
     addQueryOptions(query, selects, includes);
     return query.findUnique(args);
@@ -579,11 +612,12 @@ export abstract class Model {
    * @param {Attributes} defaults
    * @return {Model}
    */
-  static hotFindUnique(
+  static hotFindUnique<T extends Model>(
+    this: ModelConstructor<T>,
     where: QueryWhere,
-    callback: QueryCallback,
+    callback: QueryCallback<ModelConstructor<T>>,
     defaults: Attributes = {}
-  ): Model {
+  ): T {
     const model = this.make(defaults);
     model.$hydrateWith(where, callback);
     return model;
@@ -598,11 +632,12 @@ export abstract class Model {
    * @param {string[]} includes
    * @returns
    */
-  public static async find(
+  public static async find<T extends Model>(
+    this: ModelConstructor<T>,
     args: number | string | Attributes,
-    selects?: string[] | QueryCallback,
+    selects?: string[] | QueryCallback<ModelConstructor<T>>,
     includes?: string[]
-  ): Promise<Model | null> {
+  ): Promise<T | null> {
     return this.findUnique(args, selects, includes);
   }
 
@@ -614,11 +649,12 @@ export abstract class Model {
    * @param {string[]} includes
    * @returns {Promise<Model | never>}
    */
-  public static async findOrFail(
+  public static async findOrFail<T extends Model>(
+    this: ModelConstructor<T>,
     where: number | string | Attributes,
-    selects?: string[] | QueryCallback,
+    selects?: string[] | QueryCallback<ModelConstructor<T>>,
     includes?: string[]
-  ): Promise<Model | never> {
+  ): Promise<T | never> {
     const model = await this.findUnique(where, selects, includes);
     if (!model) {
       error("Model not found");
@@ -632,7 +668,10 @@ export abstract class Model {
    * @param {Attributes} data
    * @returns {Promise<Model>}
    */
-  public static async create(data: Attributes = {}): Promise<Model> {
+  public static async create<T extends Model>(
+    this: ModelConstructor<T>,
+    data: Attributes = {}
+  ): Promise<T> {
     return this.newQuery().create(data);
   }
 
@@ -642,7 +681,10 @@ export abstract class Model {
    * @param {Attributes[]} data
    * @returns {Promise<Model[]>}
    */
-  public static async createMany(data: Attributes[]): Promise<Model[]> {
+  public static async createMany<T extends Model>(
+    this: ModelConstructor<T>,
+    data: Attributes[]
+  ): Promise<T[]> {
     return this.newQuery().createMany(data);
   }
 
@@ -653,10 +695,11 @@ export abstract class Model {
    * @param {number|string|Attributes} data
    * @returns {Promise<Model>}
    */
-  public static async upsert(
+  public static async upsert<T extends Model>(
+    this: ModelConstructor<T>,
     args: number | string | Attributes,
     data: number | string | Attributes
-  ): Promise<Model> {
+  ): Promise<T> {
     return this.newQuery().upsert(args, data);
   }
 
@@ -667,10 +710,11 @@ export abstract class Model {
    * @param {number|string|Attributes} data
    * @param {Promise<Model>} model
    */
-  public static async update(
+  public static async update<T extends Model>(
+    this: ModelConstructor<T>,
     args: number | string | Attributes,
     data: Attributes
-  ) {
+  ): Promise<T> {
     return this.newQuery().update(args, data);
   }
 
@@ -680,15 +724,18 @@ export abstract class Model {
    * @param {number|string|Attributes} args
    * @param {Promise<any>} model
    */
-  public static async delete(args: number | string | Attributes) {
+  public static async delete<T extends Model>(
+    this: ModelConstructor<T>,
+    args: number | string | Attributes
+  ) {
     return this.newQuery().delete(args);
   }
 
   /**
    * Get the constructor of this model.
    */
-  public $self(): ModelType {
-    return this.constructor as ModelType;
+  public $self<T extends Model>(this: T): ModelConstructor<T> {
+    return this.constructor as ModelConstructor<T>;
   }
 
   /**
@@ -696,7 +743,7 @@ export abstract class Model {
    *
    * @returns {Query}
    */
-  public $newQuery(): Query {
+  public $newQuery<T extends Model>(this: T): Query<ModelConstructor<T>> {
     return this.$self().newQuery();
   }
 
@@ -707,9 +754,10 @@ export abstract class Model {
    * @param {string[]|QueryCallback} selects
    * @param {string[]} includes
    */
-  async $hydrateWith(
+  async $hydrateWith<T extends Model>(
+    this: T,
     args: number | string | Attributes,
-    selects?: string[] | QueryCallback,
+    selects?: string[] | QueryCallback<ModelConstructor<T>>,
     includes?: string[]
   ): Promise<boolean> {
     const query = this.$newQuery();
@@ -734,9 +782,10 @@ export abstract class Model {
    * @param {string[]|QueryCallback} selects
    * @param {string[]} includes
    */
-  async $hidrateWith(
+  async $hidrateWith<T extends Model>(
+    this: T,
     args: number | string | Attributes,
-    selects?: string[] | QueryCallback,
+    selects?: string[] | QueryCallback<ModelConstructor<T>>,
     includes?: string[]
   ): Promise<boolean> {
     return this.$hydrateWith(args, selects, includes);
@@ -748,7 +797,7 @@ export abstract class Model {
    * @param {Model} model
    * @returns {Model}
    */
-  public $copy(model: Model): Model {
+  public $copy(model: Model): this {
     if (model instanceof this.$self()) {
       this.$fillOriginal(model.$toJson());
     }
@@ -797,7 +846,7 @@ export abstract class Model {
    * @param {Attributes} attributes
    * @returns {this}
    */
-  public $fillOriginal(attributes: Attributes) {
+  public $fillOriginal(attributes: Attributes): this {
     this.original = mergeDeep(
       this.original,
       this.$filterAttributes(attributes)
@@ -821,7 +870,7 @@ export abstract class Model {
    * @param {Attributes} attributes
    * @returns {Attributes}
    */
-  protected $filterAttributes(attributes: Attributes) {
+  protected $filterAttributes(attributes: Attributes): Attributes {
     const data: Attributes = {};
     for (const field in attributes) {
       if (this.$self().fieldAttributes.includes(field)) {
@@ -835,7 +884,7 @@ export abstract class Model {
   /**
    * Keep the changes made to the model.
    */
-  public $keepChanges() {
+  public $keepChanges(): void | false {
     if (!this.$isDirty()) return false;
     this.original = mergeDeep(this.original, this.changes);
     this.changes = {};
@@ -846,8 +895,12 @@ export abstract class Model {
    *
    * @param {string} relationship
    * @param {Enumerable<Model|Attributes>} data
+   * @returns {this}
    */
-  public $attach(relationship: string, data: Enumerable<Model | Attributes>) {
+  public $attach(
+    relationship: string,
+    data: Enumerable<Model | Attributes>
+  ): this {
     const field = this.$self().getField(relationship);
     if (field && field.model) {
       if (field.isList) {
@@ -864,6 +917,8 @@ export abstract class Model {
           data instanceof Model ? data : field.model.make(data);
       }
     }
+
+    return this;
   }
 
   /**
@@ -873,7 +928,7 @@ export abstract class Model {
    * @param {*} value
    * @returns {this}
    */
-  public $setAttribute(attribute: string, value: any) {
+  public $setAttribute(attribute: string, value: any): this {
     return this.$fill({
       [attribute]: value,
     });
@@ -902,7 +957,7 @@ export abstract class Model {
   /**
    * Save the model.
    */
-  public async $save() {
+  public async $save(): Promise<void> {
     if (this.$exists()) {
       await this.$update(omit(this.attributes, [this.$getKeyName()]));
     } else {
@@ -1097,7 +1152,7 @@ export abstract class Model {
    *
    * @returns {Attributes}
    */
-  public $toJson() {
+  public $toJson(): Attributes {
     const json = cloneDeep(this.attributes);
     for (const name of Object.keys(this.relationships)) {
       const relationship = this.relationships[name];

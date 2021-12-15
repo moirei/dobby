@@ -142,7 +142,7 @@ describe("Query Includes", () => {
     const query = User.include("posts", {
       select: ["id"],
     });
-    const postsQuery = query.getRelationships()["posts"] as Query;
+    const postsQuery = query.getRelationships()["posts"] as Query<any>;
     expect(postsQuery).to.be.instanceOf(Query);
     expect(postsQuery.getSelects()).to.eql(["id"]);
     expect(postsQuery.getRelationships()).to.have.key("author");
@@ -157,11 +157,13 @@ describe("Query Includes", () => {
         },
       },
     });
-    const postsQuery = query.getRelationships()["posts"] as Query;
+    const postsQuery = query.getRelationships()["posts"] as Query<any>;
     expect(postsQuery).to.be.instanceOf(Query);
     expect(postsQuery.getSelects()).to.eql(["id"]);
     expect(postsQuery.getRelationships()).to.have.keys(["author", "publisher"]);
-    const publisherQuery = postsQuery.getRelationships()["publisher"] as Query;
+    const publisherQuery = postsQuery.getRelationships()[
+      "publisher"
+    ] as Query<any>;
     expect(publisherQuery.getSelects()).to.eql(["id", "name"]);
   });
 
@@ -169,11 +171,13 @@ describe("Query Includes", () => {
     const query = User.include("posts", function (query) {
       query.select("id").include("publisher", ["id", "name"]);
     });
-    const postsQuery = query.getRelationships()["posts"] as Query;
+    const postsQuery = query.getRelationships()["posts"] as Query<any>;
     expect(postsQuery).to.be.instanceOf(Query);
     expect(postsQuery.getSelects()).to.eql(["id"]);
     expect(postsQuery.getRelationships()).to.have.keys(["author", "publisher"]);
-    const publisherQuery = postsQuery.getRelationships()["publisher"] as Query;
+    const publisherQuery = postsQuery.getRelationships()[
+      "publisher"
+    ] as Query<any>;
     expect(publisherQuery.getSelects()).to.eql(["id", "name"]);
   });
 
@@ -182,7 +186,7 @@ describe("Query Includes", () => {
       select: ["id", "name"],
     });
 
-    const postsQuery_1 = query_1.getRelationships()["posts"] as Query;
+    const postsQuery_1 = query_1.getRelationships()["posts"] as Query<any>;
     expect(postsQuery_1.getSelects()).to.eql(["id", "name"]);
 
     const query_2 = User.include("posts", {
@@ -205,7 +209,7 @@ describe("Query Includes", () => {
       },
     });
 
-    const postsQuery_2 = query_2.getRelationships()["posts"] as Query;
+    const postsQuery_2 = query_2.getRelationships()["posts"] as Query<any>;
     expect(postsQuery_2.getSelects()).to.eql(["id", "content"]);
 
     const queryArgs = postsQuery_2.getArguments();
@@ -221,7 +225,7 @@ describe("Query Includes", () => {
     ]);
     const publisherQuery = postsQuery_2.getRelationships()[
       "publisher"
-    ] as Query;
+    ] as Query<any>;
     expect(publisherQuery.getSelects()).to.eql(["id", "name"]);
   });
 
@@ -239,12 +243,12 @@ describe("Query Includes", () => {
     expect(query.getSelects()).to.eql(["id", "name"]);
     expect(Object.keys(query.getArguments())).to.eql(["id"]);
 
-    const postsQuery = query.getRelationships().posts as Query;
+    const postsQuery = query.getRelationships().posts as Query<any>;
     expect(postsQuery).to.be.instanceOf(Query);
     expect(postsQuery.getSelects()).to.eql(["id", "content"]);
     expect(Object.keys(postsQuery.getArguments())).to.eql(["id", "slug"]);
 
-    const authorQuery = postsQuery.getRelationships().author as Query;
+    const authorQuery = postsQuery.getRelationships().author as Query<any>;
     expect(authorQuery).to.be.instanceOf(Query);
     expect(authorQuery.getSelects()).to.eql(["id"]);
   });

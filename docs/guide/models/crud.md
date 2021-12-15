@@ -2,6 +2,8 @@
 
 Interpretation of the CRUD operations is handled by the client adapter. The default adapter is made for Prisma backends in mind. To customise this behaviour, instantiate the Dobby client with a custom adapter. You can also use Hooks to override operations at individual model level.
 
+The CRUD methods are patterned after the [OpenCRUD](https://www.opencrud.org/) standard.
+
 When using the `create`, `update`, `upsert` methods, ensure the provided input data are properly formatted for your backend.
 
 

@@ -102,7 +102,7 @@ describe("Client CRUD", () => {
     const queries = client.queries.pop();
     expect(queries).to.be.an("object");
     expect(queries?.query).to.equal(
-      "query ($where: UserWhereUniqueInput!){findOneUser(where: $where){id,name,email}}"
+      "query ($where: UserWhereUniqueInput!){user(where: $where){id,name,email}}"
     );
     expect(queries?.variables).to.eql({
       where: { id: 1 },

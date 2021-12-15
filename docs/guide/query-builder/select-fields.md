@@ -35,4 +35,7 @@ User.select('id').add(['name', 'email']);
 
 ```javascript
 User.select('*');
+
+// or
+User.selectAll()
 ```

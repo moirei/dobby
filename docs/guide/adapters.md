@@ -105,7 +105,7 @@ const user = await User.findUnique()
 
 ```graphql
 query ($where: UserWhereUniqueInput!){
-  findOneUser(where: $where){
+  user(where: $where){
     id, name, email
   }
 }

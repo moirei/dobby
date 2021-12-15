@@ -1,6 +1,6 @@
 # @moirei/dobby
 
-Dobby is a GraphQL query builder and CRUD client that makes working with graphql data sources and object models enjoyable. It's designed [Prisma](https://www.prisma.io/) and [Laravel Lighthouse](https://lighthouse-php.com/) backends in mind.
+Dobby is a GraphQL query builder and CRUD client that makes working with graphql data sources and object models enjoyable. It's patterned after the [OpenCRUD](https://www.opencrud.org/) standard with [Prisma](https://www.prisma.io/) and [Laravel Lighthouse](https://lighthouse-php.com/) backends in mind.
 
 ```javascript
 import User form '~/models/user'

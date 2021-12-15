@@ -22,11 +22,11 @@ export function isRelationshipField(field: Attribute): boolean {
   return !!field.model;
 }
 
-export function addQueryOptions(
-  query: Query,
-  selects?: string[] | QueryCallback,
+export function addQueryOptions<T extends ModelType>(
+  query: Query<T>,
+  selects?: string[] | QueryCallback<T>,
   includes?: string[]
-): Query {
+): Query<T> {
   if (typeof selects === "function") {
     selects(query);
   } else if (selects) {
@@ -145,12 +145,16 @@ export function getOperation(
   return `${field.operation}${vars}{${fields.join(",")}}`;
 }
 
-type WillMutateLifecycleHooks = Pick<Hooks, "$creating" | "$updating">;
+type WillMutateLifecycleHooks<T extends ModelType> = Pick<
+  Hooks<T>,
+  "$creating" | "$updating"
+>;
 export function willMutateLifecycleHook<
-  M extends keyof WillMutateLifecycleHooks,
-  A extends MethodArgs<WillMutateLifecycleHooks, M>
+  T extends ModelType,
+  M extends keyof WillMutateLifecycleHooks<T>,
+  A extends MethodArgs<WillMutateLifecycleHooks<T>, M>
 >(model: ModelType, name: M, args: A): Attributes | false {
-  const hook = model.getHook(name) as WillMutateLifecycleHooks[M];
+  const hook = model.getHook(name) as WillMutateLifecycleHooks<T>[M];
 
   if (!hook) {
     return args[1] || {};
@@ -165,23 +169,28 @@ export function willMutateLifecycleHook<
   return args[1] || {};
 }
 
-type MutatedLifecycleHooks = Pick<Hooks, "$created" | "$updated" | "$deleted">;
+type MutatedLifecycleHooks<T extends ModelType> = Pick<
+  Hooks<T>,
+  "$created" | "$updated" | "$deleted"
+>;
 export function mutatedLifecycleHook<
-  M extends keyof MutatedLifecycleHooks,
-  A extends MethodArgs<MutatedLifecycleHooks, M>
+  T extends ModelType,
+  M extends keyof MutatedLifecycleHooks<T>,
+  A extends MethodArgs<MutatedLifecycleHooks<T>, M>
 >(model: ModelType, name: M, args: A) {
-  const hook = model.getHook(name) as MutatedLifecycleHooks[M];
+  const hook = model.getHook(name) as MutatedLifecycleHooks<T>[M];
   if (hook) {
     hook(args[0]);
   }
 }
 
-type WillEraseLifecycleHooks = Pick<Hooks, "$deleting">;
+type WillEraseLifecycleHooks<T extends ModelType> = Pick<Hooks<T>, "$deleting">;
 export function willEraseLifecycleHook<
-  M extends keyof WillEraseLifecycleHooks,
-  A extends MethodArgs<WillEraseLifecycleHooks, M>
+  T extends ModelType,
+  M extends keyof WillEraseLifecycleHooks<T>,
+  A extends MethodArgs<WillEraseLifecycleHooks<T>, M>
 >(model: ModelType, name: M, args: A) {
-  const hook = model.getHook(name) as WillEraseLifecycleHooks[M];
+  const hook = model.getHook(name) as WillEraseLifecycleHooks<T>[M];
   if (hook) {
     return hook(args[0]);
   }
