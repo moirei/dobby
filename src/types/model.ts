@@ -1,4 +1,4 @@
-import { Attribute } from "../attributes";
+import { FieldAttribute, RelationshipAttribute } from "../fields";
 import { Adapter } from "../adapters";
 import { Model } from "../Model";
 
@@ -14,21 +14,8 @@ export interface Attributes {
   [field: string]: any;
 }
 
-export interface Fields {
-  [key: string]: Attribute;
-}
-
-export interface FieldCache {
-  [key: string]: Fields;
-}
-
 export interface HookCache<T extends ModelType> {
   [key: string]: Partial<Adapter>;
-}
-
-export interface FieldListCache {
-  attributes?: string[];
-  relationships?: string[];
 }
 
 export type Hooks<T extends ModelType> = Partial<

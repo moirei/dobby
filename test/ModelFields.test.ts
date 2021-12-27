@@ -1,24 +1,5 @@
 import { expect } from "chai";
-import { Model } from "../src";
-
-class User extends Model {
-  static fields() {
-    return {
-      id: this.id(),
-      name: this.string(),
-      email: this.string(),
-      posts: this.model(Post).list(),
-    };
-  }
-}
-class Post extends Model {
-  static fields() {
-    return {
-      id: this.id(),
-      title: this.string(),
-    };
-  }
-}
+import { User, Post } from "./models";
 
 describe("Model fields", () => {
   it("should create instance", () => {
@@ -29,8 +10,11 @@ describe("Model fields", () => {
   });
 
   it("should differentiate attributes and relationships", () => {
-    expect(User.fieldAttributes).to.be.eql(["id", "name", "email"]);
-    expect(User.fieldRelationships).to.be.eql(["posts"]);
+    expect(User.fieldAttributes).to.include("id");
+    expect(User.fieldAttributes).to.include("name");
+    expect(User.fieldAttributes).to.include("email");
+    expect(User.fieldRelationships).to.include("posts");
+    expect(User.fieldRelationships).to.include("comments");
   });
 
   it("should get and set fields", () => {
@@ -41,22 +25,16 @@ describe("Model fields", () => {
     });
 
     expect(user.$getAttribute("id")).to.be.equal(3);
-    // @ts-ignore
     expect(user.name).to.equal("John Doe");
     expect(user.$getAttribute("name")).to.equal("John Doe");
     expect(user.$getAttribute("description", 5)).to.be.equal(5);
-    // @ts-ignore
     expect(user.id).to.be.equal(3);
 
-    // @ts-ignore
     user.name = "John Sno";
-    // @ts-ignore
     expect(user.name).to.equal("John Sno");
     expect(user.$getAttribute("name")).to.equal("John Sno");
 
-    // @ts-ignore
     user.$setAttribute("name", "John Carter");
-    // @ts-ignore
     expect(user.name).to.equal("John Carter");
     expect(user.$getAttribute("name")).to.equal("John Carter");
 
@@ -65,8 +43,7 @@ describe("Model fields", () => {
 
   it("should throw when attempting to set readonly field", () => {
     const user = new User();
-    // @ts-ignore
-    expect(() => (user.id = 5)).to.throw();
+    expect(() => (user.id = "5")).to.throw();
   });
 
   it("should fill attribute fields", () => {

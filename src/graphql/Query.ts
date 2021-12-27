@@ -742,8 +742,8 @@ export class Query<T extends ModelConstructor<Model>> {
       !has(this.relationships, name) &&
       this.model.fieldRelationships.includes(name)
     ) {
-      const field = this.model.getField(name);
-      if (field && field.model) {
+      const field = this.model.getRelationshipField(name);
+      if (field) {
         const query = Query.make(
           field.model,
           false,

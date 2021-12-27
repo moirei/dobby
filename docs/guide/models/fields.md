@@ -6,14 +6,14 @@
 Fields are essentially the GraphQL fields of the model. When defining fields, they can be setup with default values, type name, accessors & mutations.
 
 ```javascript
+import { Model, FieldBuilder } from '@moirei/dobby'
+
 class User extends Model {
-  static fields() {
-    return {
-      id: this.attr(null, { type: 'String' }).readonly(),
-      name: this.attr('', { type: 'String', get: (value) => value.toUpperCase() }),
-      email: this.attr('', { type: 'String' }),
-      posts: this.attr(null, { type: User }).list(), // a relationship field
-    };
+  static fields(f: FieldBuilder) {
+    f.attr('id', { type: 'ID' })
+    f.attr('name', { type: 'String', get: (value) => value.toUpperCase() })
+    f.attr('email', { type: 'String' })
+    f.attr('posts', { type: Post, list: true })
   }
 }
 ```
@@ -22,13 +22,11 @@ The above can also be be defined using the inbuilt attributes.
 
 ```javascript
 class User extends Model {
-  static fields() {
-    return {
-      id: this.id(),
-      name: this.string('', (value) => value.toUpperCase()),
-      email: this.string(),
-      posts: this.model(Post).list(),
-    };
+  static fields(f) {
+    f.id()
+    f.string('name', (value) => value.toUpperCase())
+    f.string('email')
+    f.model('posts', Post).list()
   }
 }
 ```
@@ -64,12 +62,10 @@ class User extends Model {
       this.last_name = last_name
   }
 
-  static fields() {
-    return {
-      ...
-      fist_name: this.string(),
-      last_name: this.string(),
-    };
+  static fields(f) {
+    ...
+    f.string('fist_name')
+    f.string('last_name')
   }
 }
 ```
@@ -79,22 +75,20 @@ Defined fields can also have their own getters and setters. Take a Json Scalar f
 
 ```javascript
 class User extends Model {
-  static fields() {
-    return {
-      ...
-      meta: this.attr(null, {
-        type: 'Json',
-        set(value: any, model: Model, key: string, attributes) {
-          return value ? JSON.stringify(value) : null;
-        },
-        get(value: any, model: Model, key: string, attributes) {
-          return value ? JSON.parse(String(value)) : null;
-        },
-      }),
+  static fields(f) {
+    ...
+    f.attr('meta', {
+      type: 'Json',
+      set(value: any, model: Model, key: string, attributes) {
+        return value ? JSON.stringify(value) : null;
+      },
+      get(value: any, model: Model, key: string, attributes) {
+        return value ? JSON.parse(String(value)) : null;
+      },
+    })
 
-      // or
-      meta: this.json(),
-    };
+    // or
+    f.json('meta')
   }
 }
 ```
@@ -129,12 +123,10 @@ The provided field attributes allow providing an accessor as the only option.
 
 ```javascript
 class User extends Model {
-  static fields() {
-    return {
-      ...
-      email: this.string(),
-      has_email: this.boolean(false, (value, model) => value || !!model.email},
-    };
+  static fields(f) {
+    ...
+    f.string('email')
+    f.boolean('has_email', (value, model) => value || !!model.email)
   }
 }
 ```
@@ -189,7 +181,7 @@ user.$fill({
     name: 'John Doe',
     email: 'john@mail.com',
     meta: {
-        key1: 1,
+      key1: 1,
     },
     verified: true, // discarded
 })
@@ -198,17 +190,45 @@ user.$fill({
 Using `$fill`, JSON field receives an Object rather than a raw string.
 
 
+
+
+### List Fields
+There are multiple ways to define a field (attribute or relationship) as a list.
+
+```javascript
+
+class User extends Model {
+  static fields(f) {
+    ...
+    f.list.string('tags')
+
+    // or
+    f.string('tags').list()
+
+    // or
+    f.string('tags').default([])
+
+    // or
+    f.string('tags', { list: true })
+
+    // or
+    f.string('tags', { default: [] })
+  }
+}
+```
+Theses alternatives are available to all field types.
+
 ### Readonly Fields
 
 In some cases you might want to guard attributes values from being written to. This can be done when defining the model fields.
 
 ```javascript
 class User extends Model {
-  static fields() {
-    return {
-      ...
-      verified: this.boolean().readonly(),
-    };
+  static fields(f) {
+    ...
+    f.boolean('verified').readonly()
+    // or
+    f.boolean('verified', { readonly: true })
   }
 }
 ```

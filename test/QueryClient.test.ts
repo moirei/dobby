@@ -3,76 +3,27 @@ import chai, { expect } from "chai";
 import spies from "chai-spies";
 import { plural } from "pluralize";
 import {
-  Adapter,
   DefaultAdapter,
   Query,
   Client,
   Model,
   ModelType,
+  FieldBuilder,
 } from "../src";
+import { User, Post, Comment } from "./models";
 
 chai.use(spies);
 
 class TestAdapter extends DefaultAdapter {
   findMany(query: Query<any>, model: ModelType): Query<any> | void {
     return this.executeHook(model, "findMany", [query, model], () => {
-      const operation = plural(model.name).toLocaleLowerCase();
+      const operation = plural(
+        String(model.name).toLocaleLowerCase().replace("model", "")
+      );
       query
         .operation(operation)
         .parseWith((response) => response.data[operation]);
     });
-  }
-}
-
-const findManyHook: Adapter["findMany"] = (query, model) => {
-  const operation = plural(model.name).toLocaleLowerCase();
-  query.operation(operation).parseWith((response) => response.data[operation]);
-};
-
-class User extends Model {
-  static queryAttributes: string[] = ["id", "name"];
-
-  static fields() {
-    return {
-      id: this.string(),
-      name: this.string(),
-      email: this.string(),
-      posts: this.model(Post).list(),
-      comments: this.model(Comment).list(),
-    };
-  }
-}
-class Post extends Model {
-  static queryAttributes: string[] = ["id", "name"];
-  static queryRelationships: string[] = ["author"];
-
-  static fields() {
-    return {
-      id: this.string(),
-      title: this.string(),
-      body: this.string(),
-      published: this.boolean(),
-      author: this.model(User),
-      comments: this.model(Comment).list(),
-    };
-  }
-
-  static hooks() {
-    return {
-      findMany: findManyHook,
-    };
-  }
-}
-class Comment extends Model {
-  static queryRelationships: string[] = ["author"];
-
-  static fields() {
-    return {
-      id: this.string(),
-      text: this.string(),
-      post: this.model(Post).list(),
-      author: this.model(User),
-    };
   }
 }
 
@@ -139,13 +90,11 @@ describe("Client CRUD", () => {
 
 describe("Client Custom Adapter", () => {
   it("should use provided adapter", async () => {
-    class Post extends Model {
-      static fields() {
-        return {
-          id: this.string(),
-          body: this.string(),
-          published: this.boolean(),
-        };
+    class PostModel extends Model {
+      static fields(f: FieldBuilder) {
+        f.id();
+        f.string("body");
+        f.boolean("published");
       }
     }
 
@@ -154,14 +103,14 @@ describe("Client Custom Adapter", () => {
       url: "https://graphql-demo.mead.io",
       adapter,
     });
-    client.register(Post);
+    client.register(PostModel);
 
-    const posts = await Post.select("id", "published")
-      .with("author")
-      .findMany();
-    expect(posts[0]).to.be.instanceOf(Post);
+    const findManySpy = chai.spy.on(adapter, "findMany");
+
+    const posts = await PostModel.select("id", "published").findMany();
+    expect(posts[0]).to.be.instanceOf(PostModel);
     expect(posts[0]).to.have.ownProperty("id");
-    // expect(adapter.findMany).to.have.been.called();
+    expect(findManySpy).to.have.been.called();
   });
 
   it("should execute query", async () => {

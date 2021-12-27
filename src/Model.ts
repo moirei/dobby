@@ -1,49 +1,37 @@
 import { FetchPolicy } from "apollo-client";
 import mergeDeep from "deepmerge";
+import { cloneDeep, get, isUndefined, omit, pickBy } from "lodash";
+import { Hook } from "mocha";
 import { Query } from "./graphql";
 import {
-  Attribute,
-  BooleanAttribute,
-  FloatAttribute,
-  ID,
-  IntegerAttribute,
-  StringAttribute,
-  JsonAttribute,
-} from "./attributes";
-import {
   Attributes,
-  Fields,
-  FieldCache,
-  FieldOptions,
-  FieldResolver,
   QueryCallback,
   QueryWhere,
   QueryVariable,
   SelectOptions,
   QueryInclude,
   HookCache,
-  FieldListCache,
   ModelType,
   ModelConstructor,
   Enumerable,
   Hooks,
+  Attribute,
+  FieldBuilders,
+  ModelSchemas,
+  ModelRegistries,
+  Dictionary,
 } from "./types";
-import {
-  addQueryOptions,
-  deepDiff,
-  error,
-  isChanged,
-  isRelationshipField,
-  willMutateLifecycleHook,
-} from "./utils";
+import { addQueryOptions, deepDiff, error, isChanged } from "./utils";
 import { Client } from "./graphql/Client";
-import { Adapter } from "./adapters/Adapter";
-import { ModelAttribute } from "./attributes/ModelAttribute";
-import { cloneDeep, omit } from "lodash";
-import { Hook } from "mocha";
+import { FieldBuilder, FieldAttribute, RelationshipAttribute } from "./fields";
 
 export abstract class Model {
-  [attribute: string]: any;
+  /**
+   * The model's unique identofier.
+   */
+  static get modelKey() {
+    return this.name;
+  }
 
   /**
    * The model's primary key.
@@ -83,19 +71,9 @@ export abstract class Model {
   protected changes: Attributes = {};
 
   /**
-   * The cached attribute fields of the model.
-   */
-  static cachedFields: FieldCache;
-
-  /**
    * The cached action handlers of the model.
    */
   static cachedHooks?: HookCache<any>;
-
-  /**
-   * The cached action handlers of the model.
-   */
-  static cachedFieldList?: FieldListCache;
 
   /**
    * The maximum query depth.
@@ -128,42 +106,224 @@ export abstract class Model {
     return mergeDeep(this.original, this.changes);
   }
 
+  /**
+   * The field schema builder for the model.
+   */
+  protected static fieldBuilders: FieldBuilders = {};
+
+  /**
+   * The field schema for the model.
+   */
+  protected static fieldSchema: ModelSchemas = {};
+
+  /**
+   * Registered fields to be assigned to the field schema.
+   */
+  protected static registeredFields: ModelRegistries = {};
+
+  /**
+   * The dictionary of booted models.
+   */
+  protected static booted: Record<string, boolean> = {};
+
   constructor(attributes: Attributes = {}) {
-    this.applyFields();
+    this.$boot();
     this.$fillOriginal(attributes);
+  }
+
+  /**
+   * Bootstrap this model.
+   */
+  protected $boot(): void {
+    if (!this.$self().booted[this.$modelKey]) {
+      this.$self().booted[this.$modelKey] = true;
+      this.$initialiseFields();
+    }
+    this.$applyFieldAttributes();
+  }
+
+  /**
+   * Initialise model fields.
+   */
+  protected $initialiseFields(): void {
+    this.$self().initialiseFields();
   }
 
   /**
    * Apply the model fields as local properties.
    */
-  private applyFields() {
-    const fields = this.$fields();
+  protected $applyFieldAttributes(): void {
     this.readonlyAttributes = [];
-    for (const prop of Object.keys(fields)) {
-      const field = fields[prop];
-      if (isRelationshipField(field)) {
-        Object.defineProperty(this, prop, {
-          get: () => this.relationships[prop] || field.getDefault(),
+
+    const fields = this.$getFields();
+    for (const name in fields) {
+      const field = fields[name];
+
+      if (field.isRelationship) {
+        Object.defineProperty(this, name, {
+          get: () => this.relationships[name] || field.getDefault(),
+          set: (value: any) => null,
         });
       } else {
         const options: PropertyDescriptor = {
-          get: () => this.$getAttribute(prop, field.getDefault()),
+          get: () => this.$getAttribute(name, field.getDefault()),
         };
-        if (field.isReadOnly) {
-          this.readonlyAttributes.push(prop);
+        if (field.isReadonly) {
+          this.readonlyAttributes.push(name);
         } else {
-          options["set"] = (value: any) => this.$setAttribute(prop, value);
+          options["set"] = (value: any) => this.$setAttribute(name, value);
         }
-        Object.defineProperty(this, prop, options);
+        Object.defineProperty(this, name, options);
       }
     }
   }
 
   /**
+   * Register a field attribute
+   *
+   * @param {string} key
+   * @param {FieldAttribute} attribute
+   * @return {M}
+   */
+  static registerFieldAttribute<M extends ModelType>(
+    this: M,
+    key: string,
+    attribute: Attribute
+  ): M {
+    if (!this.registeredFields) {
+      this.registeredFields = {};
+    }
+    if (!this.registeredFields[this.modelKey]) {
+      this.registeredFields[this.modelKey] = {};
+    }
+    this.registeredFields[this.modelKey][key] = attribute;
+
+    return this;
+  }
+
+  /**
+   * Get the defined model fields.
+   *
+   * @return {Dictionary<Attribute>}
+   */
+  public static getFields(): Dictionary<Attribute> {
+    if (!this.fieldSchema[this.modelKey]) {
+      this.initialiseFields();
+    }
+
+    return this.fieldSchema[this.modelKey];
+  }
+
+  /**
+   * Get the defined model relationship fields.
+   *
+   * @return {Dictionary<FieldAttribute>}
+   */
+  public static getAttributeFields(): Dictionary<FieldAttribute> {
+    const fields = this.getFields() as Dictionary<FieldAttribute>;
+    return pickBy(fields, (field) => !field.isRelationship);
+  }
+
+  /**
+   * Get the defined model relationship fields.
+   *
+   * @return {Dictionary<RelationshipAttribute>}
+   */
+  public static getRelatioshipFields(): Dictionary<RelationshipAttribute> {
+    const fields = this.getFields() as Dictionary<RelationshipAttribute>;
+    return pickBy(fields, (field) => field.isRelationship);
+  }
+
+  /**
+   * Build the schema by evaluating fields and registry.
+   */
+  protected static initialiseFields(): void {
+    if (!this.fieldSchema[this.modelKey]) {
+      const builder = this.getSchemaBuilder();
+      this.fields(builder);
+
+      this.fieldSchema[this.modelKey] = {};
+      const registry = this.registeredFields[this.modelKey];
+      const model = this.make();
+
+      for (const key in registry) {
+        const attribute = registry[key];
+        const native = get(model, key);
+        if (!isUndefined(native)) {
+          if (isUndefined(attribute.getDefault())) {
+            attribute.default(native);
+          }
+          if (Array.isArray(native)) {
+            attribute.list();
+          }
+        }
+
+        this.fieldSchema[this.modelKey][key] = attribute;
+      }
+    }
+  }
+
+  /**
+   * Model fields that are attributes.
+   */
+  public static get fieldAttributes(): string[] {
+    return Object.keys(this.getAttributeFields());
+  }
+
+  /**
+   * Model fields that are relationships.
+   */
+  public static get fieldRelationships(): string[] {
+    return Object.keys(this.getRelatioshipFields());
+  }
+
+  /**
+   * Get a field attribute.
+   *
+   * @param {string} field
+   * @return {FieldAttribute|null}
+   */
+  public static getAttributeField(name: string): FieldAttribute | null {
+    return this.getAttributeFields()[name];
+  }
+
+  /**
+   * Get a relationship attribute.
+   *
+   * @param {string} name
+   * @return {RelationshipAttribute|null}
+   */
+  public static getRelationshipField(
+    name: string
+  ): RelationshipAttribute | null {
+    return this.getRelatioshipFields()[name];
+  }
+
+  /**
+   * The field schema builder.
+   * @returns {typeof FieldBuilder}
+   */
+  static fieldBuilder(): typeof FieldBuilder {
+    return FieldBuilder;
+  }
+
+  /**
+   * The field schema builder.
+   * @returns {FieldBuilder}
+   */
+  static getSchemaBuilder(): FieldBuilder {
+    if (!this.fieldBuilders[this.modelKey]) {
+      this.fieldBuilders[this.modelKey] = new (this.fieldBuilder())(this);
+    }
+
+    return this.fieldBuilders[this.modelKey];
+  }
+
+  /**
    * The definition of the fields of the model.
    */
-  static fields(): Fields {
-    return {};
+  static fields(f: FieldBuilder): void {
+    //
   }
 
   /**
@@ -171,127 +331,6 @@ export abstract class Model {
    */
   static hooks<T extends ModelType>(this: T): Hooks<T> {
     return {};
-  }
-
-  /**
-   * Define an attribute field.
-   *
-   * @param {any} value
-   * @param {FieldOptions} options
-   * @returns {Attribute}
-   */
-  protected static attr(value?: any, options?: FieldOptions): Attribute {
-    return Attribute.make(value, options);
-  }
-
-  /**
-   * Define a boolean attribute field.
-   *
-   * @param {boolean} value
-   * @param {FieldResolver} options
-   * @returns {BooleanAttribute}
-   */
-  protected static boolean(
-    value?: boolean,
-    resolver?: FieldResolver
-  ): BooleanAttribute {
-    return BooleanAttribute.make(value, resolver);
-  }
-
-  /**
-   * Define a number attribute field.
-   *
-   * @param {number} value
-   * @param {FieldResolver} options
-   * @returns {FloatAttribute}
-   */
-  protected static float(
-    value?: number,
-    resolver?: FieldResolver
-  ): FloatAttribute {
-    return FloatAttribute.make(value, resolver);
-  }
-
-  /**
-   * Define an ID attribute field.
-   *
-   * @param {string} value
-   * @param {FieldResolver} options
-   * @returns {ID}
-   */
-  protected static id(resolver?: FieldResolver): ID {
-    return ID.make(resolver);
-  }
-
-  /**
-   * Define an integer attribute field.
-   *
-   * @param {number} value
-   * @param {FieldResolver} options
-   * @returns {IntegerAttribute}
-   */
-  protected static integer(
-    value?: number,
-    resolver?: FieldResolver
-  ): IntegerAttribute {
-    return IntegerAttribute.make(value, resolver);
-  }
-
-  /**
-   * Define a json attribute field.
-   *
-   * @param {number} value
-   * @param {string} type
-   * @returns {JsonAttribute}
-   */
-  protected static json(value?: number, type?: string): JsonAttribute {
-    return JsonAttribute.make(value, type);
-  }
-
-  /**
-   * Define a string attribute field.
-   *
-   * @param {string} value
-   * @param {FieldResolver} options
-   * @returns {StringAttribute}
-   */
-  protected static string(
-    value?: string,
-    resolver?: FieldResolver
-  ): StringAttribute {
-    return StringAttribute.make(value, resolver);
-  }
-
-  /**
-   * Define a model relationship field.
-   *
-   * @param {Attributes|Model|null} value
-   * @returns {ModelAttribute}
-   */
-  protected static model(
-    model: ModelType,
-    value?: Attributes | Model | null
-  ): ModelAttribute {
-    return ModelAttribute.make(value, model);
-  }
-
-  /**
-   * Get the Model schema definition from the cache.
-   *
-   * @return {Fields}
-   */
-  public static getFields(): Fields {
-    if (!this.cachedFields) {
-      this.cachedFields = {};
-    }
-
-    if (this.cachedFields[this.name]) {
-      return this.cachedFields[this.name];
-    }
-
-    this.cachedFields[this.name] = this.fields();
-
-    return this.cachedFields[this.name];
   }
 
   /**
@@ -314,16 +353,6 @@ export abstract class Model {
   }
 
   /**
-   * Get a field attribute.
-   *
-   * @param {string} field
-   * @return {Attribute|null}
-   */
-  public static getField(field: string): Attribute | null {
-    return this.getFields()[field];
-  }
-
-  /**
    * Get a defined hook method.
    *
    * @param {string} hook
@@ -334,46 +363,6 @@ export abstract class Model {
     field: K
   ): Hooks<T>[K] {
     return this.getHooks()[field];
-  }
-
-  /**
-   * Model fields that are relationships.
-   */
-  public static get fieldRelationships(): string[] {
-    if (!this.cachedFieldList) {
-      this.cachedFieldList = {};
-    }
-    if (!this.cachedFieldList.relationships) {
-      this.cachedFieldList.relationships = [];
-      const fields = this.getFields();
-      for (const name in fields) {
-        if (fields[name] && isRelationshipField(fields[name])) {
-          this.cachedFieldList.relationships.push(name);
-        }
-      }
-    }
-
-    return this.cachedFieldList.relationships;
-  }
-
-  /**
-   * Model fields that are attributes.
-   */
-  public static get fieldAttributes(): string[] {
-    if (!this.cachedFieldList) {
-      this.cachedFieldList = {};
-    }
-    if (!this.cachedFieldList.attributes) {
-      this.cachedFieldList.attributes = [];
-      const fields = this.getFields();
-      for (const name in fields) {
-        if (fields[name] && !isRelationshipField(fields[name])) {
-          this.cachedFieldList.attributes.push(name);
-        }
-      }
-    }
-
-    return this.cachedFieldList.attributes;
   }
 
   /**
@@ -527,8 +516,7 @@ export abstract class Model {
     attributes: Attributes = {}
   ): T {
     // @ts-ignore
-    const model: T = new this(attributes);
-    return model as T;
+    return new this(attributes) as InstanceType<M>;
   }
 
   /**
@@ -617,7 +605,7 @@ export abstract class Model {
     where: QueryWhere,
     callback: QueryCallback<ModelConstructor<T>>,
     defaults: Attributes = {}
-  ): T {
+  ): InstanceType<ModelConstructor<T>> {
     const model = this.make(defaults);
     model.$hydrateWith(where, callback);
     return model;
@@ -739,6 +727,13 @@ export abstract class Model {
   }
 
   /**
+   * Get the entity for this model.
+   */
+  get $modelKey(): string {
+    return this.$self().modelKey;
+  }
+
+  /**
    * Start a new query.
    *
    * @returns {Query}
@@ -754,10 +749,10 @@ export abstract class Model {
    * @param {string[]|QueryCallback} selects
    * @param {string[]} includes
    */
-  async $hydrateWith<T extends Model>(
-    this: T,
+  public async $hydrateWith<M extends Model>(
+    this: M,
     args: number | string | Attributes,
-    selects?: string[] | QueryCallback<ModelConstructor<T>>,
+    selects?: string[] | QueryCallback<ModelConstructor<M>>,
     includes?: string[]
   ): Promise<boolean> {
     const query = this.$newQuery();
@@ -814,13 +809,13 @@ export abstract class Model {
   public $fill(attributes: Attributes): this {
     const writable: Attributes = {};
     for (const attr in attributes) {
-      const field = this.$self().getField(attr);
+      const field = this.$self().getAttributeField(attr);
       if (this.$isWritable(attr) && field) {
         writable[attr] = field.mutator(
           attributes[attr],
           this,
           attr,
-          this.attributes
+          attributes
         );
       }
     }
@@ -852,8 +847,9 @@ export abstract class Model {
       this.$filterAttributes(attributes)
     );
 
+    const fieldRelationships = Object.keys(this.$relationshipFields());
     for (const attribute in attributes) {
-      if (this.$self().fieldRelationships.includes(attribute)) {
+      if (fieldRelationships.includes(attribute)) {
         if (attributes[attribute]) {
           this.$attach(attribute, attributes[attribute]);
         }
@@ -882,6 +878,64 @@ export abstract class Model {
   }
 
   /**
+   * Fetch fields and update model.
+   *
+   * @param {...string|string[]} selects
+   * @returns {Promise<this>}
+   */
+  public async $fetch(...selects: SelectOptions[]): Promise<this> {
+    const data = await this.$newQuery()
+      .select(...selects)
+      // .clearIncludes()
+      .findUnique({
+        [this.$getKeyName()]: this.$getKey(),
+      });
+
+    if (data) {
+      this.$fillOriginal(data.$getAttributes());
+    }
+
+    return this;
+  }
+
+  /**
+   * Load relationships and update model.
+   *
+   * @param {...string|string[]} selects
+   * @returns {Promise<this>}
+   */
+  public async $load(relationship: string | string[]): Promise<this>;
+  public async $load(
+    relationships: Record<string, QueryInclude | boolean>
+  ): Promise<this>;
+  public async $load(
+    relationship: string,
+    selects: QueryInclude | QueryCallback<ModelConstructor<this>>
+  ): Promise<this>;
+  public async $load(
+    relationship: string,
+    selects: string[],
+    relationships?: string[]
+  ): Promise<this>;
+  public async $load(
+    relationship: string | string[] | Record<string, QueryInclude | boolean>,
+    selects?: string[] | QueryInclude | QueryCallback<ModelConstructor<this>>,
+    relationships?: string[]
+  ): Promise<this> {
+    const data = await Model.select(this.$getKeyName())
+      .include(relationship as any, selects as any, relationships as any)
+      .findUnique({
+        [this.$getKeyName()]: this.$getKey(),
+      });
+
+    if (data) {
+      this.$fillOriginal(data.$getAttributes());
+    }
+
+    return this;
+  }
+
+  /**
    * Keep the changes made to the model.
    */
   public $keepChanges(): void | false {
@@ -901,8 +955,8 @@ export abstract class Model {
     relationship: string,
     data: Enumerable<Model | Attributes>
   ): this {
-    const field = this.$self().getField(relationship);
-    if (field && field.model) {
+    const field = this.$self().getRelationshipField(relationship);
+    if (field) {
       if (field.isList) {
         if (!Array.isArray(data)) {
           error("Cannot assign non-array value to list field");
@@ -942,7 +996,7 @@ export abstract class Model {
    * @returns {this}
    */
   public $getAttribute(attribute: string, $default?: any) {
-    const field = this.$self().getField(attribute);
+    const field = this.$self().getAttributeField(attribute);
     if (!field) return $default;
     return (
       field.accessor(
@@ -1166,11 +1220,29 @@ export abstract class Model {
   }
 
   /**
-   * The definition of the fields of the model and its relations.
+   * All the defined model fields.
 
-   @return {Fields}
+   @return {Dictionary<Attribute>}
    */
-  public $fields(): Fields {
+  public $getFields(): Dictionary<Attribute> {
     return this.$self().getFields();
+  }
+
+  /**
+   * The defined model field attributes.
+
+   @return {Dictionary<FieldAttribute>}
+   */
+  public $attributeFields(): Dictionary<FieldAttribute> {
+    return this.$self().getAttributeFields();
+  }
+
+  /**
+   * The defined model relationship attributes.
+
+   @return {Dictionary<RelationshipAttribute>}
+   */
+  public $relationshipFields(): Dictionary<RelationshipAttribute> {
+    return this.$self().getRelatioshipFields();
   }
 }

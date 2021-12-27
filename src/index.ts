@@ -1,5 +1,5 @@
 export * from "./adapters";
-export * from "./attributes";
+export * from "./fields";
 export * from "./graphql";
 export * from "./Model";
 export * from "./types";

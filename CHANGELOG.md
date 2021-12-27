@@ -22,3 +22,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 * fix: findUnique to use singular
 * feat: add `selectAll` method
 * feat: Model inheritance return types
+
+
+## 1.3.0
+
+* feat: add `$fetch` and `$load` methods to Model
+* refactor: change how field attributes and relationships are registered
+* fix: remove nullable option in attributes
+* feat: field definition with decorators
+* feat: watchable JSON field attribute

@@ -7,12 +7,10 @@ Adapters are what interpret how the final queries for CRUD operations `create`, 
 
 ```javascript
 class User extends Model {
-  static fields() {
-    return {
-      id: this.id(),
-      name: this.string(),
-      email: this.string(),
-    };
+  static fields(f) {
+    f.id()
+    f.string('name')
+    f.string('email')
   }
 }
 ```

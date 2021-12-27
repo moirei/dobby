@@ -1,17 +1,7 @@
 import { expect } from "chai";
 import { DocumentNode } from "graphql";
 import { ApolloQueryResult, FetchPolicy } from "apollo-client";
-import { Client, Model } from "../src";
-
-class User extends Model {
-  static fields() {
-    return {
-      id: this.id(),
-      name: this.string(),
-      email: this.string(),
-    };
-  }
-}
+import { Client, Model, FieldBuilder } from "../src";
 
 class TestClient extends Client {
   queries: {
@@ -46,10 +36,22 @@ class TestClient extends Client {
   }
 }
 
-const client = new TestClient();
-client.register(User);
-
 describe("Client CRUD", () => {
+  class User extends Model {
+    static get modelKey() {
+      return "UserCrud0";
+    }
+
+    static fields(f: FieldBuilder) {
+      f.id();
+      f.string("name");
+      f.string("email");
+    }
+  }
+
+  const client = new TestClient();
+  client.register(User);
+
   it("should build and execute create operation", async () => {
     await User.create({ name: "James" });
     const mutation = client.mutations.pop();
@@ -196,7 +198,12 @@ describe("Client CRUD", () => {
 
 describe("Client CRUD", () => {
   it("should return instance on create operation", async () => {
-    class User extends Model {}
+    class User extends Model {
+      static get modelKey() {
+        return "UserCrud1";
+      }
+    }
+
     class CreateTestClient extends Client {
       public async mutate(
         query: string | DocumentNode,
@@ -218,7 +225,11 @@ describe("Client CRUD", () => {
   });
 
   it("should return instance on createMany operation", async () => {
-    class User extends Model {}
+    class User extends Model {
+      static get modelKey() {
+        return "UserCrud2";
+      }
+    }
     class CreateManyTestClient extends Client {
       public async mutate(
         query: string | DocumentNode,
@@ -240,7 +251,12 @@ describe("Client CRUD", () => {
   });
 
   it("should return instance on upsert operation", async () => {
-    class User extends Model {}
+    class User extends Model {
+      static get modelKey() {
+        return "UserCrud3";
+      }
+    }
+
     class UpsertTestClient extends Client {
       public async mutate(
         query: string | DocumentNode,
@@ -262,7 +278,11 @@ describe("Client CRUD", () => {
   });
 
   it("should return instance on update operation", async () => {
-    class User extends Model {}
+    class User extends Model {
+      static get modelKey() {
+        return "UserCrud4";
+      }
+    }
     class UpdateTestClient extends Client {
       public async mutate(
         query: string | DocumentNode,

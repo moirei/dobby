@@ -74,6 +74,6 @@ export interface QueryInclude {
   // };
 }
 
-export interface QueryCallback<M extends ModelConstructor<Model>> {
+export interface QueryCallback<M extends ModelType> {
   (query: Query<M>): void | Query<M>;
 }

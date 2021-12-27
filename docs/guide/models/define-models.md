@@ -9,12 +9,12 @@ Take this User model as an example
 import { Model } from "@moirei/dobby";
 
 class User extends Model {
-  static fields() {
-    return {
-      id: this.id(),
-      name: this.string(),
-      email: this.string()
-    };
+  static fields(f) {
+    ...
+    f.id()
+    f.string('name')
+    f.string('email')
+    f.json('meta', { watch: true })
   }
 }
 ```
@@ -36,14 +36,12 @@ Consider the below definitions for [this GraphQL demo](https://graphql-demo.mead
 
 ```javascript
 class User extends Model {
-  static fields() {
-    return {
-      id: this.string(),
-      name: this.string(),
-      email: this.string(),
-      posts: this.model(Post).list(),
-      comments: this.model(Comment).list(),
-    };
+  static fields(f) {
+    f.id()
+    f.string('name')
+    f.string('email')
+    f.model('posts', Post).list()
+    f.model('comments', { type: Comment, default: [] })
   }
 }
 
@@ -51,15 +49,13 @@ class Post extends Model {
   // eager load author
   static queryRelationships: string[] = ["author"];
 
-  static fields() {
-    return {
-      id: this.string(),
-      title: this.string(),
-      body: this.string(),
-      published: this.boolean(),
-      author: this.model(User),
-      comments: this.model(Comment).list(),
-    };
+  static fields(f) {
+    f.id();
+    f.string("title");
+    f.string("body");
+    f.boolean("published");
+    f.model("author", User);
+    f.list.model("comments", Comment);
   }
 
   static hooks() {
@@ -69,13 +65,11 @@ class Post extends Model {
   }
 }
 class Comment extends Model {
-  static fields() {
-    return {
-      id: this.string(),
-      text: this.string(),
-      post: this.model(Post).list(),
-      author: this.model(User),
-    };
+  static fields(f) {
+    f.id();
+    f.string("text");
+    f.model("post", Post);
+    f.model("author", User);
   }
 }
 
@@ -85,6 +79,7 @@ const client = new Client({
 
 client.register(User, Post, Comment);
 ```
+> Note that providing array as default will automatically make the field a list
 
 
 Now uses can be retrieved with

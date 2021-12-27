@@ -1,42 +1,5 @@
 import { expect } from "chai";
-import { Model } from "../src";
-
-class User extends Model {
-  static queryAttributes: string[] = ["id", "name"];
-
-  static fields() {
-    return {
-      id: this.string(),
-      name: this.string(),
-      description: this.string(),
-      posts: this.attr([], {
-        type: Post,
-      }).list(),
-    };
-  }
-}
-class Publisher extends Model {
-  static fields() {
-    return {
-      id: this.string(),
-      name: this.string(),
-    };
-  }
-}
-class Post extends Model {
-  static queryAttributes: string[] = ["id", "name"];
-  static queryRelationships: string[] = ["author"];
-
-  static fields() {
-    return {
-      id: this.string(),
-      name: this.string(),
-      content: this.string(),
-      author: this.attr(null, { type: User }),
-      publisher: this.attr(null, { type: Publisher }),
-    };
-  }
-}
+import { User } from "./models";
 
 describe("Stringify query", () => {
   it("should get query", () => {
@@ -44,7 +7,7 @@ describe("Stringify query", () => {
       .select("id", "name")
       .include("posts", {
         where: { id: 5 },
-        select: ["id", "content"],
+        select: ["id", "body"],
         include: {
           author: ["id"],
         },
@@ -53,7 +16,7 @@ describe("Stringify query", () => {
     const output = query.operation("createOneUser").getQuery("userMutation");
     expect(output.query).to.be.a("string");
     expect(output.query.trim().replace(/\s/g, "")).to.have.string(
-      "queryuserMutation($id:Int,$id1:Int){createOneUser(id:$id1){id,name,posts(id:$id){id,content,author{id}}}}"
+      "queryuserMutation($id:Int,$id1:Int){createOneUser(id:$id1){id,name,posts(id:$id){id,body,author{id}}}}"
     );
     expect(output.variables).to.have.keys(["id", "id1"]);
     expect(output.variables.id).to.equal(5);
@@ -69,7 +32,7 @@ describe("Stringify query", () => {
           value: 5,
         },
       },
-      select: ["id", "content"],
+      select: ["id", "body"],
       include: {
         author: ["id"],
       },
@@ -78,7 +41,7 @@ describe("Stringify query", () => {
     const output = query.operation("createOneUser").getQuery("userMutation");
     expect(output.query).to.be.a("string");
     expect(output.query.trim().replace(/\s/g, "")).to.have.string(
-      "queryuserMutation($id:Int!){createOneUser{id,name,posts(id:$id){id,content,author{id}}}}"
+      "queryuserMutation($id:Int!){createOneUser{id,name,posts(id:$id){id,body,author{id}}}}"
     );
     expect(output.variables).to.have.keys(["id"]);
     expect(output.variables.id).to.equal(5);

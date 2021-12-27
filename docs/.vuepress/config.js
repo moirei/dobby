@@ -25,6 +25,7 @@ module.exports = {
           "/guide/models/conventions",
           "/guide/models/crud",
           "/guide/models/fields",
+          "/guide/models/decorators",
           "/guide/models/hooks",
           "/guide/models/customising-models",
         ],

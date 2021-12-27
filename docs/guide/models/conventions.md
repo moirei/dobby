@@ -3,6 +3,54 @@
 In order to leverage the power of Dobby models, it might be useful to understand some basics.
 
 
+## Model Key
+Model keys are similar to model names in that they're used to identify models. By default, you may not define a model with the same name more than once. Using a key identify is a way to define multiple models that share the same name but might have different schemas.
+
+In some cases, especitially when working with multiple client endpoints, you might need to define multiple models with different schemas.
+
+Model 1.
+
+```javascript
+export class Address extends Model{
+  static get modelKey(){
+    return 'UserAddress'
+  }
+
+  static fields(f) {
+    f.id()
+    f.string('street')
+    f.string('street_extra')
+    ...
+  }
+}
+```
+
+Model 2
+
+```javascript
+export class Address extends Model{
+  static get modelKey(){
+    return 'LocationAddress'
+  }
+
+  static fields(f) {
+    f.id()
+    f.string('line1')
+    f.string('line2')
+    ...
+  }
+}
+```
+
+Defining the above models at different locations in one application without unique `modelKey` will cause several schema build errors.
+
+
+With the default adapter, the below will execute a `addresses{ id }` query for either models.
+```javascript
+const addresses = await Address.select('id').findMany()
+```
+
+
 
 ## Primary Keys
 
@@ -18,10 +66,11 @@ class User extends Model{
    */
   static primaryKey = "handle";
 
-  static fields() {
-    return {
-      handle: this.id(),
-    };
+  static fields(f) {
+    f.id()
+
+    // Or
+    f.id('handle', 'ID')
   }
 }
 ```
@@ -218,9 +267,9 @@ user.$isDirty(); // false
 It is possible to define a model and later hydrate its content with a query result.
 
 ```javascript
-const user1 = new User({ 
-  id: 1, 
-  name: 'Joe Blow', 
+const user1 = new User({
+  id: 1,
+  name: 'Joe Blow',
 })
 const user2 = new User()
 ```
@@ -231,7 +280,7 @@ This will perform a `findUnique` operation under the hood and then copy its resu
 await user2.$hydrateWith({ id: 2 })
 ```
 
-The `$hydrateWith` method supports arguments similar to the `findUnique` method. 
+The `$hydrateWith` method supports arguments similar to the `findUnique` method.
 
 Now that `user2` is hydrate, its content can also be copied to `user1`.
 
@@ -241,8 +290,6 @@ user1.$copy(user2)
 user1.id // returns "2"
 user1.name // returns "John Doe"
 ```
-
-
 
 
 ## Comparing Models
@@ -258,7 +305,6 @@ if (user.$isNot(anotherUser)) {
   //
 }
 ```
-
 
 
 ## Retrieving Instance Constructor

@@ -1,42 +1,6 @@
 import { expect } from "chai";
-import { Query, Client, Model } from "../src";
-
-class User extends Model {
-  static queryAttributes: string[] = ["id", "name"];
-
-  static fields() {
-    return {
-      id: this.string(),
-      name: this.string(),
-      description: this.string(),
-      posts: this.attr([], {
-        type: Post,
-      }).list(),
-    };
-  }
-}
-class Publisher extends Model {
-  static fields() {
-    return {
-      id: this.string(),
-      name: this.string(),
-    };
-  }
-}
-class Post extends Model {
-  static queryAttributes: string[] = ["id", "name"];
-  static queryRelationships: string[] = ["author"];
-
-  static fields() {
-    return {
-      id: this.string(),
-      name: this.string(),
-      content: this.string(),
-      author: this.attr(null, { type: User }),
-      publisher: this.attr(null, { type: Publisher }),
-    };
-  }
-}
+import { Query, Client, Model, FieldBuilder } from "../src";
+import { User, Post } from "./models";
 
 describe("Create Query instance", () => {
   it("should create instance", () => {
@@ -93,13 +57,13 @@ describe("Query Selects", () => {
   });
 
   it("should add fields to selection", () => {
-    const query = Post.select("id").add("content");
-    expect(query.getSelects()).to.be.eql(["id", "content"]);
+    const query = Post.select("id").add("body");
+    expect(query.getSelects()).to.be.eql(["id", "body"]);
   });
 
   it("should select all model fields", () => {
     const query = User.select("*");
-    expect(query.getSelects()).to.be.eql(["id", "name", "description"]);
+    expect(query.getSelects()).to.be.eql(["id", "name", "email"]);
   });
 
   it("should only select model fields", () => {
@@ -126,10 +90,12 @@ describe("Query Includes", () => {
   it("should select all model relationships", () => {
     expect(Post.include("*").getRelationships()).to.have.all.keys([
       "author",
+      "comments",
       "publisher",
     ]);
     expect(Post.include(["*"]).getRelationships()).to.have.all.keys([
       "author",
+      "comments",
       "publisher",
     ]);
     expect(Post.include("publisher").getRelationships()).to.have.all.keys([
@@ -148,7 +114,7 @@ describe("Query Includes", () => {
     expect(postsQuery.getRelationships()).to.have.key("author");
   });
 
-  it("should include relationship and select provided fields", () => {
+  it("should include relationship and select provided fields [2]", () => {
     const query = User.include("posts", {
       select: ["id"],
       include: {
@@ -183,11 +149,11 @@ describe("Query Includes", () => {
 
   it("should include relationship and select all fields", () => {
     const query_1 = User.include("posts", {
-      select: ["id", "name"],
+      select: ["id", "title"],
     });
 
     const postsQuery_1 = query_1.getRelationships()["posts"] as Query<any>;
-    expect(postsQuery_1.getSelects()).to.eql(["id", "name"]);
+    expect(postsQuery_1.getSelects()).to.eql(["id", "title"]);
 
     const query_2 = User.include("posts", {
       where: {
@@ -202,7 +168,7 @@ describe("Query Includes", () => {
       },
       select: {
         id: true,
-        content: true,
+        body: true,
       },
       include: {
         publisher: true,
@@ -210,7 +176,7 @@ describe("Query Includes", () => {
     });
 
     const postsQuery_2 = query_2.getRelationships()["posts"] as Query<any>;
-    expect(postsQuery_2.getSelects()).to.eql(["id", "content"]);
+    expect(postsQuery_2.getSelects()).to.eql(["id", "body"]);
 
     const queryArgs = postsQuery_2.getArguments();
     expect(queryArgs).to.have.keys(["id", "where"]);
@@ -234,7 +200,7 @@ describe("Query Includes", () => {
       .select("id", "name")
       .include("posts", {
         where: { id: 5, slug: "post-slug" },
-        select: ["id", "content"],
+        select: ["id", "body"],
         include: {
           author: ["id"],
         },
@@ -245,7 +211,7 @@ describe("Query Includes", () => {
 
     const postsQuery = query.getRelationships().posts as Query<any>;
     expect(postsQuery).to.be.instanceOf(Query);
-    expect(postsQuery.getSelects()).to.eql(["id", "content"]);
+    expect(postsQuery.getSelects()).to.eql(["id", "body"]);
     expect(Object.keys(postsQuery.getArguments())).to.eql(["id", "slug"]);
 
     const authorQuery = postsQuery.getRelationships().author as Query<any>;
@@ -258,11 +224,13 @@ describe("Query Proxy", () => {
   class User extends Model {
     static dynamicQueryOperations: boolean = true;
 
-    static fields() {
-      return {
-        id: this.id(),
-        name: this.string(),
-      };
+    static get modelKey() {
+      return "UserModelQueryBuilder";
+    }
+
+    static fields(f: FieldBuilder) {
+      f.id();
+      f.string("name");
     }
   }
 

@@ -13,14 +13,9 @@ import {
 } from "../types";
 import { Query } from "../graphql";
 import { ArgumentsBucket } from "../graphql/ArgumentsBucket";
-import { Attribute } from "../attributes";
 import { error } from "./errors";
 import { isFloat } from ".";
 import { Adapter } from "src";
-
-export function isRelationshipField(field: Attribute): boolean {
-  return !!field.model;
-}
 
 export function addQueryOptions<T extends ModelType>(
   query: Query<T>,
