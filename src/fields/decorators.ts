@@ -6,6 +6,7 @@ import {
   FieldDecorator,
 } from "../types";
 import { get, isUndefined } from "lodash";
+import { RelationshipAttribute } from "../fields";
 
 /**
  * Define an attribute field.
@@ -13,10 +14,18 @@ import { get, isUndefined } from "lodash";
  * @param {FieldOptions} value
  * @returns {FieldDecorator}
  */
-export function attr(options?: FieldOptions): FieldDecorator {
+export function attr(
+  options?: FieldOptions & { type?: () => ModelType }
+): FieldDecorator {
   return (model, key) => {
-    const builder = model.$self().getSchemaBuilder();
-    builder.attr(key, options);
+    if (options && typeof options.type === "function") {
+      const modelType = options.type;
+      const attr = () => new RelationshipAttribute(key, modelType(), options);
+      model.$self().registerFieldAttribute(key, attr);
+    } else {
+      const builder = model.$self().getSchemaBuilder();
+      builder.attr(key, options);
+    }
   };
 }
 
@@ -95,12 +104,12 @@ export function json(
  * @returns {FieldDecorator}
  */
 export function model(
-  modelType: ModelType,
+  modelType: () => ModelType,
   options?: RelationshipOptions
 ): FieldDecorator {
   return (model, key) => {
-    const builder = model.$self().getSchemaBuilder();
-    builder.model(key, modelType, options);
+    const attr = () => new RelationshipAttribute(key, modelType(), options);
+    model.$self().registerFieldAttribute(key, attr);
   };
 }
 
@@ -112,13 +121,10 @@ export function model(
  * @returns {FieldDecorator}
  */
 export function relation(
-  modelType: ModelType,
+  modelType: () => ModelType,
   options?: RelationshipOptions
 ): FieldDecorator {
-  return (model, key) => {
-    const builder = model.$self().getSchemaBuilder();
-    builder.model(key, modelType, options);
-  };
+  return model(modelType, options);
 }
 
 /**

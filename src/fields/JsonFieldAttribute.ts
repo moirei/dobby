@@ -49,9 +49,16 @@ export default class JsonFieldAttribute extends FieldAttribute {
    * @returns
    */
   public accessor = (value: string, model: Model, key: string) => {
-    return this.getJsonAttributeValue(key, model, () =>
+    const json = this.getJsonAttributeValue(key, model, () =>
       value ? JSON.parse(value) : null
     );
+    if (model.$isDirty(key)) {
+      const original = model.$getOriginal(key);
+      if (original) {
+        Object.assign(json, JSON.parse(original));
+      }
+    }
+    return json;
   };
 
   protected getJsonAttributeValue<T>(
@@ -63,19 +70,17 @@ export default class JsonFieldAttribute extends FieldAttribute {
 
     if (!model.hasOwnProperty(accessKey)) {
       const json = callback();
-      if (json) {
+      if (json && !model.hasOwnProperty(accessKey)) {
         if (this.watchChange) {
           const proxy = Observer.create(json, false, () => {
             model.$setAttribute(name, json);
           });
           Object.defineProperty(model, accessKey, {
             get: () => proxy,
-            configurable: true,
           });
         } else {
           Object.defineProperty(model, accessKey, {
             get: () => json,
-            configurable: true,
           });
         }
       }

@@ -273,23 +273,23 @@ describe("Decorator [Model]", () => {
       return "UserModelWithDecorator [7]";
     }
 
-    @model(Post)
+    @model(() => Post)
     // @ts-ignore
     fieldA!: Post;
 
-    @model(Post, { default: new Post() })
+    @model(() => Post, { default: new Post() })
     // @ts-ignore
     fieldB!: Post;
 
-    @model(Post)
+    @model(() => Post)
     // @ts-ignore
     fieldC!: Post = new Post({ title: "User post" });
 
-    @model(Post)
+    @model(() => Post)
     // @ts-ignore
     fieldD!: Post[] = [];
 
-    @model(Post, { default: [] })
+    @model(() => Post, { default: [] })
     // @ts-ignore
     fieldE!: Post[];
   }

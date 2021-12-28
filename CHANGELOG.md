@@ -31,3 +31,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 * fix: remove nullable option in attributes
 * feat: field definition with decorators
 * feat: watchable JSON field attribute
+
+
+## 1.3.1
+
+* fix: JsonFieldAttribute state to reflect change when dirty
+* fix: registering nested relationships via decorators

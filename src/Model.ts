@@ -188,7 +188,7 @@ export abstract class Model {
   static registerFieldAttribute<M extends ModelType>(
     this: M,
     key: string,
-    attribute: Attribute
+    attribute: Attribute | { (): Attribute }
   ): M {
     if (!this.registeredFields) {
       this.registeredFields = {};
@@ -247,7 +247,8 @@ export abstract class Model {
       const model = this.make();
 
       for (const key in registry) {
-        const attribute = registry[key];
+        const attr = registry[key];
+        const attribute = typeof attr === "function" ? attr() : attr;
         const native = get(model, key);
         if (!isUndefined(native)) {
           if (isUndefined(attribute.getDefault())) {

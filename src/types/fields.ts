@@ -33,4 +33,4 @@ export type FieldDecorator = (model: Model, key: string) => void;
 export type FieldBuilders = Dictionary<FieldBuilder>;
 export type ModelSchemas = Dictionary<Fields>;
 export type ModelRegistries = Dictionary<RegisteredFields>;
-export type RegisteredFields = Dictionary<Attribute>;
+export type RegisteredFields = Dictionary<Attribute | { (): Attribute }>;

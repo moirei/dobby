@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { Query, Client, Model, FieldBuilder } from "../src";
+import { Query, Client, Model, FieldBuilder, id, model } from "../src";
 import { User, Post } from "./models";
 
 describe("Create Query instance", () => {
@@ -217,6 +217,41 @@ describe("Query Includes", () => {
     const authorQuery = postsQuery.getRelationships().author as Query<any>;
     expect(authorQuery).to.be.instanceOf(Query);
     expect(authorQuery.getSelects()).to.eql(["id"]);
+  });
+
+  it("should inclue nested relationships defined with decorators", () => {
+    class Writer extends Model {
+      @id()
+      // @ts-ignore
+      id: number;
+
+      @model(() => Book)
+      // @ts-ignore
+      books: Book[] = [];
+    }
+
+    class Book extends Model {
+      @id()
+      // @ts-ignore
+      id: number;
+
+      @model(() => Writer)
+      // @ts-ignore
+      writer: Writer;
+    }
+
+    const { query } = Writer.selectAll()
+      .include("books", (query) =>
+        query
+          .selectAll()
+          .include("writer", (query) => query.selectAll().include("books"))
+      )
+      .operation("writers")
+      .getQuery();
+
+    expect(query).to.equal(
+      "query {writers{id,books{id,writer{id,books{id}}}}}"
+    );
   });
 });
 

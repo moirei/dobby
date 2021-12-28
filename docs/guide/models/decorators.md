@@ -127,13 +127,13 @@ Registers a property as a Model relationship field.
 
 ```javascript
 class User extends Model {
-  @model(Post)
+  @model(() => Post)
   post: Post
 
-  @model(Address, { list: true })
+  @model(() => Address, { list: true })
   addresses: Address[]
 
-  @model(Comments)
+  @model(() => Comments)
   post: Comments[] = []
 }
 ```
