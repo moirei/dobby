@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { FieldBuilder, Model } from "../src";
 import { User, Post } from "./models";
 
 describe("Model fields", () => {
@@ -59,6 +60,50 @@ describe("Model fields", () => {
     expect(user.$getAttribute("name")).to.equal("John Doe");
     expect(user.$getOriginal("name")).to.equal(undefined);
     expect(user.$isDirty("name")).to.be.true;
+  });
+
+  it("should cast attribute fields", () => {
+    class User extends Model {
+      static get modelKey() {
+        return "castAttributeFieldsUserModel";
+      }
+
+      id!: string;
+      name!: string;
+      visits!: number;
+      visitsList!: number[];
+      tags!: string[];
+      active!: boolean;
+
+      static fields(f: FieldBuilder) {
+        f.id();
+        f.string("name");
+        f.integer("visits");
+        f.boolean("active");
+        f.integer("visitsList").list();
+        f.string("tags").list();
+      }
+    }
+
+    const user = new User();
+
+    // @ts-ignore
+    user.name = 2;
+    // @ts-ignore
+    user.active = "1";
+    // @ts-ignore
+    user.visits = "34";
+    // @ts-ignore
+    user.visitsList = [3, "4", 45];
+    // @ts-ignore
+    user.tags = [3, "4", 45];
+
+    // @ts-ignore
+    expect(user.name).to.eql("2");
+    expect(user.active).to.eql(true);
+    expect(user.visits).to.eql(34);
+    expect(user.visitsList).to.eql([3, 4, 45]);
+    expect(user.tags).to.eql(["3", "4", "45"]);
   });
 
   it("should fill relationship fields", () => {

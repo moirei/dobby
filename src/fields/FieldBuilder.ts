@@ -1,11 +1,13 @@
-import { get, omit } from "lodash";
-import { Model } from "src";
+import { omit, parseInt } from "lodash";
+import { Model } from "./../Model";
 import {
   ModelType,
   FieldOption,
   FieldOptions,
   RelationshipOptions,
   FieldBuilderAttributes,
+  Attribute,
+  Attributes,
 } from "./../types";
 import FieldAttribute from "./FieldAttribute";
 import JsonFieldAttribute from "./JsonFieldAttribute";
@@ -25,6 +27,22 @@ function resolveFieldOptions(
 
   return omit(o, ["type"]);
 }
+
+const makeParser =
+  (caster: (v: any) => any) =>
+  (
+    value: any,
+    _model: Model,
+    _key: string,
+    _attributes: Attributes,
+    attr: Attribute
+  ) => {
+    if (attr.isList) {
+      if (value) return value.map(caster);
+      return value;
+    }
+    return caster(value);
+  };
 
 export default class FieldBuilder {
   constructor(protected modelClass: ModelType) {
@@ -65,8 +83,11 @@ export default class FieldBuilder {
    * @returns {FieldAttribute}
    */
   public boolean(name: string, value?: boolean | FieldOption): FieldAttribute {
+    const caster = (value: any) => (value ? !!value : value);
     const options: FieldOptions = {
       type: "Boolean",
+      set: makeParser(caster),
+      get: makeParser(caster),
       ...resolveFieldOptions(value),
     };
 
@@ -81,8 +102,12 @@ export default class FieldBuilder {
    * @returns {FieldAttribute}
    */
   public float(name: string, value?: number | FieldOption): FieldAttribute {
+    const caster = (value: any) => (value ? Number(value) : value);
+
     const options: FieldOptions = {
       type: "Float",
+      set: makeParser(caster),
+      get: makeParser(caster),
       ...resolveFieldOptions(value),
     };
 
@@ -114,8 +139,11 @@ export default class FieldBuilder {
     name: string,
     value?: number | NonNullable<FieldOptions["get"]>
   ): FieldAttribute {
+    const caster = (value: any) => (value ? parseInt(String(value)) : value);
     const options: FieldOptions = {
       type: "Int",
+      set: makeParser(caster),
+      get: makeParser(caster),
       ...resolveFieldOptions(value),
     };
 
@@ -182,8 +210,12 @@ export default class FieldBuilder {
    * @returns {StringAttribute}
    */
   public string(name: string, value?: string | FieldOption): FieldAttribute {
+    const caster = (value: any) => (value ? String(value) : value);
+
     const options: FieldOptions = {
       type: "String",
+      set: makeParser(caster),
+      get: makeParser(caster),
       ...resolveFieldOptions(value),
     };
 

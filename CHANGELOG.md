@@ -37,3 +37,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 * fix: JsonFieldAttribute state to reflect change when dirty
 * fix: registering nested relationships via decorators
+
+
+## 1.3.2
+
+* feat: field attributes to cast values
+* fix: Model `$save` method should not update with all attributes

@@ -124,7 +124,8 @@ describe("Client CRUD", () => {
   });
 
   it("should update existing (with ID) user", async () => {
-    const user = User.make({ id: 1, name: "John" });
+    const user = User.make({ id: 1, name: "John Doe" });
+    user.$fill({ name: "John" });
     await user.$save();
     const mutations = client.mutations.pop();
     expect(mutations).to.be.an("object");

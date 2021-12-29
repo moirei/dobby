@@ -816,7 +816,8 @@ export abstract class Model {
           attributes[attr],
           this,
           attr,
-          attributes
+          attributes,
+          field
         );
       }
     }
@@ -1004,7 +1005,8 @@ export abstract class Model {
         this.attributes[attribute],
         this,
         attribute,
-        this.attributes
+        this.attributes,
+        field
       ) || $default
     );
   }
@@ -1014,7 +1016,7 @@ export abstract class Model {
    */
   public async $save(): Promise<void> {
     if (this.$exists()) {
-      await this.$update(omit(this.attributes, [this.$getKeyName()]));
+      await this.$update();
     } else {
       const data = await this.$self().create(this.attributes);
       this.$fillOriginal(data.$getAttributes());

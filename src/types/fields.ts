@@ -12,8 +12,20 @@ export interface FieldOptions {
   default?: any;
   readonly?: boolean;
   list?: boolean;
-  set?(value: any, model: Model, key: string, attributes: Attributes): any;
-  get?(value: any, model: Model, key: string, attributes: Attributes): any;
+  set?(
+    value: any,
+    model: Model,
+    key: string,
+    attributes: Attributes,
+    attr: Attribute
+  ): any;
+  get?(
+    value: any,
+    model: Model,
+    key: string,
+    attributes: Attributes,
+    attr: Attribute
+  ): any;
 }
 
 export type FieldOption =
