@@ -2,6 +2,8 @@
 
 Create a new client and register your models.
 
+Not all your models need to be registered; only ones that execute client queries.
+
 ```javascript
 import { User, Post, Comment } from '~/models'
 
@@ -11,13 +13,12 @@ client.register(User);
 client.register(Post);
 client.register(Comment);
 
-// or 
+// or
 client.register(User, Post, Comment);
 
-// or 
+// or
 client.register([User, Post, Comment]);
 ```
-
 
 
 ## Apollo Client
@@ -31,16 +32,15 @@ const client = new Client({
 ```
 
 
-
 ## Adapters
 
-If an adapter is not provided, the `DefaultAdapter` adapter is used. 
+If an adapter is not provided, the `DefaultAdapter` adapter is used.
 
 ```javascript
 class MyAdapter extends DefaultAdapter{
     ...
 }
-    
+
 const client = new Client({
   adapter: new MyAdapter(),
 });

@@ -43,3 +43,8 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 * feat: field attributes to cast values
 * fix: Model `$save` method should not update with all attributes
+
+## 1.3.3
+
+* fix: Model `$is` to compare with `Model.modelKey`
+* fix: uplift docs

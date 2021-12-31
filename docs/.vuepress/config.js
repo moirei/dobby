@@ -42,9 +42,12 @@ module.exports = {
         ],
       },
       {
-        title: "Adapters",
+        title: "Advanced",
         collapsable: false,
-        path: "/guide/adapters",
+        children: [
+          "/guide/advanced/adapters",
+          "/guide/advanced/field-builders",
+        ],
       },
     ],
     nav: [

@@ -1,6 +1,6 @@
 # Defining Models
 
-Models essentially descript a GraphQL type with its fields and relationships. Once defined, the model can be used to perform complex queries.
+Models essentially describe a GraphQL type with its fields and relationships. Once defined, the model can be used to perform complex queries.
 
 Take this User model as an example
 
@@ -65,6 +65,9 @@ class Post extends Model {
   }
 }
 class Comment extends Model {
+  // eager load author
+  static queryRelationships: string[] = ["author"];
+
   static fields(f) {
     f.id();
     f.string("text");
@@ -88,10 +91,11 @@ Now uses can be retrieved with
 const users = await User.findMany();
 ```
 
-This by default will not include the users' posts. To include posts, use the `include` method of the Query Builder
+This by default will not include the users' posts and comments. To include these, use the `include` method of the Query Builder
 
 ```javascript
 const users = await User.select("id", "name")
+      .include('posts', ['id', 'title'])
       .include("comments")
       .findMany();
 ```
@@ -102,6 +106,9 @@ Since `Post` model eagerly loads `author`, this will execute the following query
 query {
   users{
     id, name,
+    posts{
+      id, title
+    }
     comments{
       id, text,
       author{ id, name, email }

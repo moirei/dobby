@@ -4,7 +4,7 @@ In order to leverage the power of Dobby models, it might be useful to understand
 
 
 ## Model Key
-Model keys are similar to model names in that they're used to identify models. By default, you may not define a model with the same name more than once. Using a key identify is a way to define multiple models that share the same name but might have different schemas.
+Model keys are similar to model names in that they're used to identify models. By default, you may not define a model with the same name more than once. Using a key identifyie is a way to define multiple models that share the same name but might have different schemas.
 
 In some cases, especitially when working with multiple client endpoints, you might need to define multiple models with different schemas.
 
@@ -55,7 +55,7 @@ const addresses = await Address.select('id').findMany()
 ## Primary Keys
 
 Dobby assumes your models have a primary key named `id`.
-When defining your model's primary key, it's recommended to use the `ID` attribute to define this field to automatically make it read-only.
+When defining your model's primary key, it's recommended to use the `ID` attribute to automatically make it read-only.
 
 ```javascript
 import { Model } from '@moirei/dobby'
@@ -75,7 +75,7 @@ class User extends Model{
 }
 ```
 
-If you need to retrieve key name or value on a model instance, you may use the `$getKeyName` and `$getKey` methods.
+If you need to retrieve the primary key name or value on a model instance, you may use the `$getKeyName` and `$getKey` methods.
 
 ```javascript
 const user = new User({ handle: 'james-franco' })
@@ -88,7 +88,7 @@ user.$getkey() // returns "james-franco"
 
 ## Default Selects
 
-By default, all model attributes are select in queries. For models with large number of attributes, you might want to limit the number of query fields selected by default. E.g. when using the `findMany` method. Use the `queryAttributes` property to specify the default selection.
+By default, all model attributes are selected in queries. For models with large number of attributes, you might want to limit the number of query fields selected by default. E.g. when using the `findMany` method. Use the `queryAttributes` property to specify the default selection.
 
 ```javascript
 class User extends Model {
@@ -118,7 +118,7 @@ class User extends Model {
 
 ## Dynamic Query Operations
 
-Enabling dynamic query operations allow you to build and execute queries in style. Assuming you need to perform a mutation named `subscibeUser`, you may not necessarily want to create a new Adapter or hook for this.
+Enabling dynamic query operations allow you to build and execute queries in style. Assuming you need to perform a query named `subscribedUsers`, you may not necessarily want to create a new Adapter or hook for this.
 
 ```javascript
 class User extends Model{
@@ -131,6 +131,20 @@ class User extends Model{
 
 Now, the following query can be called without throwing errors
 
+```javascript
+await User.select(['id', 'name']).subscribedUsers()
+```
+This will build and execute the following query
+
+```graphql
+query {
+  subscribedUsers{
+    id name
+  }
+}
+```
+
+Likewise a mutation for `subscibeUser` can be
 ```javascript
 await User.where('id', 1).mutation().subscibeUser()
 ```
@@ -147,7 +161,7 @@ mutation ($id: Int){
 
 ## Default Attribute Values
 
-When you create or retrieve a model, the raw values of the retrieved fields are stored in the model's `original`  container.
+One of the ways to define default values in using the model's `original` attributes bucket. When you create or retrieve a model, the raw values of the retrieved fields are stored here.
 
 ```javascript
 class User extends Model{
@@ -176,12 +190,24 @@ class User extends Model{
   static maxQueryDepth = 3;
 }
 ```
-
+This is ignored when relationships are included manually.
 
 
 ## Make Arguments Required by Default
 
-With eager loading enabled, related models are automatically included to queries. By default this is limited to 3 degrees.
+By default, anonymous variables are automatically parsed. That is, the following query will consider `id` to be an optional variable.
+
+```javascript
+await User.where('id', 1).mutate('subscibeUser')
+```
+
+```graphql
+mutation ($id: Int){
+  subscibeUser(id: $id)
+}
+```
+
+To make all anonyous variables required by default, set the `argumentRequiredByDefault` property to `true`.
 
 ```javascript
 class User extends Model{
@@ -192,7 +218,7 @@ class User extends Model{
 }
 ```
 
-Set to true, the above mutation with produce a slightly deferent query
+Now the above mutation with produce a slightly deferent query
 
 ```javascript
 await User.where('id', 1).mutate('subscibeUser')
@@ -203,6 +229,7 @@ mutation ($id: Int!){
   subscibeUser(id: $id)
 }
 ```
+Note that anonymous variables is only allowed for primitive types.
 
 
 
@@ -294,7 +321,7 @@ user1.name // returns "John Doe"
 
 ## Comparing Models
 
-Dobby provides methods `$is` and `$isNot` to quickly compare models. It compares the model types and primary keys.
+Dobby provides methods `$is` and `$isNot` to quickly compare models. It compares the Model keys and primary keys.
 
 ```javascript
 if (user.$is(anotherUser)) {

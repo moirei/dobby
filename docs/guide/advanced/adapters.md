@@ -1,6 +1,6 @@
 # Adapters
 
-Adapters are what interpret how the final queries for CRUD operations `create`, `createMany`, `upsert`, etc., are built for execution. The default adapter is build for Prisma's style convention.
+Adapters are what interpret how the final queries for CRUD operations `create`, `createMany`, `upsert`, etc., are built for execution. The default adapter is build for Prisma and [OpenCRUD](https://www.opencrud.org/) convention.
 
 
 ## Default Adapter Interpretations

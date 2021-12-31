@@ -29,5 +29,14 @@ query.where({
     value: { ... }
   }
 })
+
+// or
+
+query.where('id', 1)
+     .where('data', {
+        type: 'UserCreateInput',
+        required: true,
+        value: { ... }
+      })
 ```
 

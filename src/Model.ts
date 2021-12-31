@@ -1111,7 +1111,10 @@ export abstract class Model {
    * @returns {boolean}
    */
   public $is(model: Model): boolean {
-    return model instanceof this.$self() && model.$getKey() === this.$getKey();
+    return (
+      model.$self().modelKey === this.$self().modelKey &&
+      model.$getKey() === this.$getKey()
+    );
   }
 
   /**

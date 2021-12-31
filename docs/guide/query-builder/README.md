@@ -9,5 +9,8 @@ const users = await User.select("id", "name").findMany();
 A query can also be started for a model using the builder directly.
 
 ```javascript
+import { Query } from '@moirei/dobby'
+
+...
 Query.make(User).select("id", "name").findMany();
 ```

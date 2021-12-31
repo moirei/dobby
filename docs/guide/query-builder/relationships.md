@@ -41,7 +41,7 @@ query.include("posts", (query) => {
 });
 ```
 
-Alternative, a declarative object can be provided
+Alternatively, a declarative object can be provided
 
 ```javascript
 query.include("posts", {
