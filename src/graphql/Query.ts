@@ -327,10 +327,11 @@ export class Query<T extends ModelConstructor<Model>> {
    * Execute "create" CRUD operation.
    *
    * @param {Attributes} data
+   * @param {Promise<M>} model
    * @return {Promise<M>}
    */
-  async create<M extends InstanceType<T>>(data: Attributes): Promise<M> {
-    const model = this.model.make();
+  async create<M extends InstanceType<T>>(data: Attributes, m?: M): Promise<M> {
+    const model = m || this.model.make();
 
     const createData = await willMutateLifecycleHook(this.model, "$creating", [
       model,

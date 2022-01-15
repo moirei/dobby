@@ -1,4 +1,5 @@
 import { isEqual, transform, isObject, get } from "lodash";
+import deepmerge from "deepmerge";
 import { Attributes } from "./../types";
 
 export const empty = (value: any) => {
@@ -39,17 +40,24 @@ export const isChanged = (
   original: Attributes,
   attributes: Attributes,
   field?: string
-) => {
+): boolean => {
   if ((!original || !attributes) && !field) return false;
   if (field && !isObject(attributes[field])) {
     if (attributes[field] === undefined) return false;
-    return original[field] !== attributes[field];
+    return !isEqual(original[field], attributes[field]);
   }
 
   let changed = false;
-  for (const key of Object.keys(flattenObject(attributes))) {
-    const value = get(attributes, key);
-    changed = changed || (!empty(value) && !isEqual(value, get(original, key)));
+  for (const key of Object.keys(attributes)) {
+    const a = get(attributes, key);
+    const b = get(original, key);
+    if (Array.isArray(b)) {
+      changed = changed || !isEqual(a, b);
+    } else if (isObject(a)) {
+      changed = changed || isChanged(a, b);
+    } else {
+      changed = changed || (!empty(a) && !isEqual(a, b));
+    }
     if (changed) break;
   }
 
@@ -72,11 +80,23 @@ export function changes(attributes: Attributes, original: Attributes) {
 }
 
 /**
- * Deep diff between two object, using lodash
+ * Deep diff between two object
  * @param  {Attributes} attributes    Object compared
  * @param  {Attributes} original  Object to compare with
  * @return {Object}           Return a new object who represent the diff
  */
 export function deepDiff(attributes: Attributes, original: Attributes) {
   return changes(attributes, original);
+}
+
+/**
+ * Merge two objects
+ * @param  {Attributes} a  Object compared
+ * @param  {Attributes} b  Object to compare with
+ * @return {Object}           Return a new object who represent the diff
+ */
+export function mergeDeep(a: Attributes, b: Attributes) {
+  return deepmerge(a, b, {
+    arrayMerge: (_dest, source, _options) => source,
+  });
 }

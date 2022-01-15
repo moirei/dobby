@@ -15,7 +15,7 @@ import { RelationshipAttribute } from "../fields";
  * @returns {FieldDecorator}
  */
 export function attr(
-  options?: FieldOptions & { type?: () => ModelType }
+  options?: FieldOptions & { type?: string | { (): ModelType } }
 ): FieldDecorator {
   return (model, key) => {
     if (options && typeof options.type === "function") {

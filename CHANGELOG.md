@@ -48,3 +48,11 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 * fix: Model `$is` to compare with `Model.modelKey`
 * fix: uplift docs
+
+
+## 1.3.4
+
+* fix: pass actual instance to Query builder when saving non-existing instance
+* fix: deep merge array to overwrite target
+* feat: add `$setChangesAttribute` method
+* fix: `isChanged` util method for changed state of array attributes

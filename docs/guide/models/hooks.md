@@ -70,21 +70,21 @@ Currently all adapter methods are overridable.
 
 ## Lifecycle Hooks
 
-Lifecycle hooks are called before or after a `create`, `update` or `delete` operation. This gives you the opportunity to further modify mutation data or complete abort the operation.
+Lifecycle hooks are called before or after a `create`, `update` or `delete` operation. This gives you the opportunity to further modify mutation data or completely abort the operation.
 
 Here is an example of a `Location` model that has an `Address` model. Changes might have been made to an instantiated location's address directly.
 
 ```javascript
 const location = await Location.with('address').findUnique({ id: 1 })
 
-location.address.is_public = false 
+location.address.is_public = false
 location.$save()
 ```
 
-In this case, 
+In this case,
 
 ```javascript
-location.$isDirty() // returns false 
+location.$isDirty() // returns false
 location.$isDeepDirty() // return true
 ```
 
@@ -110,7 +110,7 @@ class Location extends Model {
 
 
 
-Available lifecycle hooks:
+## Available lifecycle hooks
 
 ```javascript
 class Location extends Model {
@@ -121,23 +121,23 @@ class Location extends Model {
       $creating(model: Model, data: Attributes): void | Attributes | false{
         //
       },
-        
+
       $created(model: Model): void{
         //
       },
-        
+
       $updating(model: Model, data: Attributes): void | Attributes | false{
         //
       },
-      
+
       $updated(model: Model): void{
         //
       },
-      
+
       $deleting(model: Model): void | false{
         //
       },
-      
+
       $deleted(model: Model): void{
         //
       },

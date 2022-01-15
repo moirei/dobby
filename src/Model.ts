@@ -1,7 +1,5 @@
 import { FetchPolicy } from "apollo-client";
-import mergeDeep from "deepmerge";
 import { cloneDeep, get, isUndefined, omit, pickBy } from "lodash";
-import { Hook } from "mocha";
 import { Query } from "./graphql";
 import {
   Attributes,
@@ -21,7 +19,13 @@ import {
   ModelRegistries,
   Dictionary,
 } from "./types";
-import { addQueryOptions, deepDiff, error, isChanged } from "./utils";
+import {
+  addQueryOptions,
+  deepDiff,
+  error,
+  isChanged,
+  mergeDeep,
+} from "./utils";
 import { Client } from "./graphql/Client";
 import { FieldBuilder, FieldAttribute, RelationshipAttribute } from "./fields";
 
@@ -1012,14 +1016,28 @@ export abstract class Model {
   }
 
   /**
+   * Write to the changes container.
+   *
+   * @param {string} attribute
+   * @param {*} value
+   * @returns {this}
+   */
+  public $setChangesAttribute(attribute: string, value: any): this {
+    const attributes: Attributes = {
+      [attribute]: value,
+    };
+    this.changes = mergeDeep(this.changes, attributes);
+    return this;
+  }
+
+  /**
    * Save the model.
    */
   public async $save(): Promise<void> {
     if (this.$exists()) {
       await this.$update();
     } else {
-      const data = await this.$self().create(this.attributes);
-      this.$fillOriginal(data.$getAttributes());
+      await this.$self().newQuery().create(this.attributes, this);
     }
   }
 

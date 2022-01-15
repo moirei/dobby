@@ -46,9 +46,6 @@ class User extends Model {
 }
 
 class Post extends Model {
-  // eager load author
-  static queryRelationships: string[] = ["author"];
-
   static fields(f) {
     f.id();
     f.string("title");
@@ -64,6 +61,7 @@ class Post extends Model {
     };
   }
 }
+
 class Comment extends Model {
   // eager load author
   static queryRelationships: string[] = ["author"];
@@ -85,7 +83,7 @@ client.register(User, Post, Comment);
 > Note that providing array as default will automatically make the field a list
 
 
-Now uses can be retrieved with
+Now users can be retrieved with
 
 ```javascript
 const users = await User.findMany();
@@ -100,7 +98,7 @@ const users = await User.select("id", "name")
       .findMany();
 ```
 
-Since `Post` model eagerly loads `author`, this will execute the following query
+Since `Comment` model eagerly loads `author`, this will execute the following query
 
 ```graphql
 query {
