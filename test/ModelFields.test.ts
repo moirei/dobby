@@ -127,17 +127,6 @@ describe("Model fields", () => {
     expect(user.posts[1].$getAttribute("title")).to.equal("My second post");
   });
 
-  it("updated attributes should be dirty", () => {
-    const user = new User({
-      name: "John",
-    });
-
-    expect(user.$isDirty("name")).to.be.false;
-    // @ts-ignore
-    user.name = "Doe";
-    expect(user.$isDirty()).to.be.true;
-  });
-
   it("should convert to json", () => {
     const user = new User({
       name: "John Doe",

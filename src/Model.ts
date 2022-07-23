@@ -1,5 +1,5 @@
 import { FetchPolicy } from "apollo-client";
-import { cloneDeep, get, isUndefined, omit, pickBy } from "lodash";
+import { cloneDeep, get, isUndefined, pickBy } from "lodash";
 import { Query } from "./graphql";
 import {
   Attributes,
@@ -18,16 +18,20 @@ import {
   ModelSchemas,
   ModelRegistries,
   Dictionary,
+  Relationships,
+  Collectable,
 } from "./types";
 import {
   addQueryOptions,
   deepDiff,
   error,
   isChanged,
+  isRelationshipsChanged,
   mergeDeep,
 } from "./utils";
 import { Client } from "./graphql/Client";
 import { FieldBuilder, FieldAttribute, RelationshipAttribute } from "./fields";
+import { Collection } from "./Collection";
 
 export abstract class Model {
   /**
@@ -67,12 +71,22 @@ export abstract class Model {
   /**
    * Original model attributes data.
    */
-  protected original: Attributes = {};
+  protected originalAttributes: Attributes = {};
 
   /**
    * Changed/updated attributes data.
    */
-  protected changes: Attributes = {};
+  protected changedAttributes: Attributes = {};
+
+  /**
+   * Original model relationships.
+   */
+  protected originalRelationships: Relationships = {};
+
+  /**
+   * Changed/updated relationships.
+   */
+  protected changedRelationships: Relationships = {};
 
   /**
    * The cached action handlers of the model.
@@ -101,13 +115,15 @@ export abstract class Model {
    */
   public static readonly client?: Client;
 
-  /**
-   * Associated model relationships.
-   */
-  protected relationships: Object & Record<string, Enumerable<Model>> = {};
-
   protected get attributes(): Attributes {
-    return mergeDeep(this.original, this.changes);
+    return mergeDeep(this.originalAttributes, this.changedAttributes);
+  }
+
+  protected get relationships(): Relationships {
+    return {
+      ...this.originalRelationships,
+      ...this.changedRelationships,
+    };
   }
 
   /**
@@ -166,7 +182,12 @@ export abstract class Model {
       if (field.isRelationship) {
         Object.defineProperty(this, name, {
           get: () => this.relationships[name] || field.getDefault(),
-          set: (value: any) => null,
+          set: (value: Collectable<Model>) => {
+            this.changedRelationships = {
+              ...this.changedRelationships,
+              [name]: value,
+            };
+          },
         });
       } else {
         const options: PropertyDescriptor = {
@@ -813,9 +834,11 @@ export abstract class Model {
    */
   public $fill(attributes: Attributes): this {
     const writable: Attributes = {};
+    attributes = this.$filterAttributes(attributes);
+
     for (const attr in attributes) {
       const field = this.$self().getAttributeField(attr);
-      if (this.$isWritable(attr) && field) {
+      if (field && this.$isWritable(attr)) {
         writable[attr] = field.mutator(
           attributes[attr],
           this,
@@ -825,7 +848,8 @@ export abstract class Model {
         );
       }
     }
-    this.changes = mergeDeep(this.changes, this.$filterAttributes(writable));
+
+    this.changedAttributes = mergeDeep(this.changedAttributes, writable);
 
     return this;
   }
@@ -837,28 +861,26 @@ export abstract class Model {
    * @returns {this}
    */
   public $fillDiff(attributes: Attributes): this {
-    const diff = deepDiff(attributes, this.original);
+    const diff = deepDiff(attributes, this.originalAttributes);
     return this.$fill(diff);
   }
 
   /**
-   * Fill the original model attributes.
+   * Fill the originalAttributes model attributes.
    *
    * @param {Attributes} attributes
    * @returns {this}
    */
   public $fillOriginal(attributes: Attributes): this {
-    this.original = mergeDeep(
-      this.original,
+    this.originalAttributes = mergeDeep(
+      this.originalAttributes,
       this.$filterAttributes(attributes)
     );
 
     const fieldRelationships = Object.keys(this.$relationshipFields());
     for (const attribute in attributes) {
-      if (fieldRelationships.includes(attribute)) {
-        if (attributes[attribute]) {
-          this.$attach(attribute, attributes[attribute]);
-        }
+      if (fieldRelationships.includes(attribute) && attributes[attribute]) {
+        this.$attach(attribute, attributes[attribute]);
       }
     }
 
@@ -942,12 +964,39 @@ export abstract class Model {
   }
 
   /**
-   * Keep the changes made to the model.
+   * Keep the changedAttributes made to the model.
+   *
+   * @param {boolean} shallow
    */
-  public $keepChanges(): void | false {
-    if (!this.$isDirty()) return false;
-    this.original = mergeDeep(this.original, this.changes);
-    this.changes = {};
+  public $keepChanges(shallow = false): void {
+    this.originalAttributes = mergeDeep(
+      this.originalAttributes,
+      this.changedAttributes
+    );
+    this.originalRelationships = Object.assign(
+      this.originalRelationships,
+      this.changedRelationships
+    );
+
+    this.$clearChanges();
+
+    if (!shallow && this.$isDeepDirty()) {
+      Object.values(this.originalRelationships).forEach((relationship) => {
+        if (Array.isArray(relationship)) {
+          Collection.from(relationship).$keepChanges();
+        } else {
+          relationship.$keepChanges();
+        }
+      });
+    }
+  }
+
+  /**
+   * Clear changes.
+   */
+  public $clearChanges(): void {
+    this.changedAttributes = {};
+    this.changedRelationships = {};
   }
 
   /**
@@ -967,13 +1016,13 @@ export abstract class Model {
         if (!Array.isArray(data)) {
           error("Cannot assign non-array value to list field");
         }
-        this.relationships[relationship] = ((data as Attributes[]) || []).map(
-          (attr) =>
-            // @ts-ignore
-            attr instanceof Model ? attr : field.model.make(attr)
+        const models = ((data as Attributes[]) || []).map((attr) =>
+          // @ts-ignore
+          attr instanceof Model ? attr : field.model.make(attr)
         );
+        this.originalRelationships[relationship] = Collection.from(models);
       } else {
-        this.relationships[relationship] =
+        this.originalRelationships[relationship] =
           data instanceof Model ? data : field.model.make(data);
       }
     }
@@ -1016,7 +1065,7 @@ export abstract class Model {
   }
 
   /**
-   * Write to the changes container.
+   * Write to the changedAttributes container.
    *
    * @param {string} attribute
    * @param {*} value
@@ -1026,7 +1075,7 @@ export abstract class Model {
     const attributes: Attributes = {
       [attribute]: value,
     };
-    this.changes = mergeDeep(this.changes, attributes);
+    this.changedAttributes = mergeDeep(this.changedAttributes, attributes);
     return this;
   }
 
@@ -1056,7 +1105,7 @@ export abstract class Model {
 
     return new Promise((resolve) => {
       this.$newQuery()
-        .update(undefined, cloneDeep(this.changes), this)
+        .update(undefined, cloneDeep(this.changedAttributes), this)
         .then((update) => {
           resolve(update);
         });
@@ -1090,18 +1139,37 @@ export abstract class Model {
    *
    * @returns {any}
    */
-  public $getKey() {
+  public $getKey(): any {
     return this.$getAttribute(this.$getKeyName());
   }
 
   /**
-   * Get the original attribute value.
+   * Get the original attribute or relationship value.
    *
    * @param {string} attribute
    * @returns {any}
    */
-  public $getOriginal(attribute: string): any {
-    return this.original[attribute];
+  public $getOriginal(attribute: string, $default?: any): any {
+    return (
+      this.originalAttributes[attribute] ||
+      this.originalRelationships[attribute] ||
+      $default
+    );
+  }
+
+  /**
+   * Get the changed attribute or relationship value.
+   *
+   * @param {string} attribute
+   * @param {*} $default
+   * @returns {this}
+   */
+  public $getChange(attribute: string, $default?: any): any {
+    return (
+      this.changedAttributes[attribute] ||
+      this.changedRelationships[attribute] ||
+      $default
+    );
   }
 
   /**
@@ -1114,12 +1182,21 @@ export abstract class Model {
   }
 
   /**
-   * Get change attribute values.
+   * Get changed attribute values.
    *
    * @returns {Attributes}
    */
-  public $getChanges(): Attributes {
-    return this.changes;
+  public $getAttributeChanges(): Attributes {
+    return this.changedAttributes;
+  }
+
+  /**
+   * Get changed attribute values.
+   *
+   * @returns {Relationships}
+   */
+  public $getRelationshipChanges(): Relationships {
+    return this.changedRelationships;
   }
 
   /**
@@ -1153,30 +1230,58 @@ export abstract class Model {
    */
   public $isDirty(attribute?: string): boolean {
     if (attribute) {
-      return isChanged(this.original, this.changes, attribute);
+      const fieldRelationships = Object.keys(this.$relationshipFields());
+
+      if (fieldRelationships.includes(attribute)) {
+        return isRelationshipsChanged(
+          this.originalRelationships,
+          this.changedRelationships,
+          attribute
+        );
+      }
+
+      return isChanged(
+        this.originalAttributes,
+        this.changedAttributes,
+        attribute
+      );
     }
-    return isChanged(this.original, this.changes);
+    return (
+      isChanged(this.originalAttributes, this.changedAttributes) ||
+      isRelationshipsChanged(
+        this.originalRelationships,
+        this.changedRelationships
+      )
+    );
   }
 
   /**
    * Check dirty state with deep relationships.
    *
+   * @param {string} attribute
    * @returns {boolean}
    */
-  public $isDeepDirty(): boolean {
-    let isDirty = isChanged(this.original, this.changes);
+  public $isDeepDirty(attribute?: string): boolean {
+    let isDirty = this.$isDirty(attribute);
+
+    const relationshipIsDeepDirty = (name: string): boolean => {
+      const relationship = this.relationships[name];
+      if (!relationship) return false;
+      if (Array.isArray(relationship)) {
+        return Collection.from(relationship).$isDeepDirty();
+      }
+      return relationship.$isDeepDirty();
+    };
 
     if (!isDirty) {
+      if (attribute) {
+        const fieldRelationships = Object.keys(this.$relationshipFields());
+        if (!fieldRelationships.includes(attribute)) return false;
+        return relationshipIsDeepDirty(attribute);
+      }
+
       for (const name of Object.keys(this.relationships)) {
-        const relationship = this.relationships[name];
-        if (Array.isArray(relationship)) {
-          for (const rel of relationship) {
-            isDirty = rel.$isDeepDirty();
-            if (isDirty) break;
-          }
-        } else {
-          isDirty = relationship.$isDeepDirty();
-        }
+        isDirty = relationshipIsDeepDirty(name);
         if (isDirty) break;
       }
     }
@@ -1222,7 +1327,7 @@ export abstract class Model {
    * @returns {boolean}
    */
   public $exists(): boolean {
-    return this.original.hasOwnProperty(this.$self().primaryKey);
+    return this.originalAttributes.hasOwnProperty(this.$self().primaryKey);
   }
 
   /**
@@ -1241,6 +1346,16 @@ export abstract class Model {
       }
     }
     return json;
+  }
+
+  /**
+   * Parse native JSON.
+   *
+   * @param {string}
+   * @returns {any}
+   */
+  toJSON(): any {
+    return this.$toJson();
   }
 
   /**

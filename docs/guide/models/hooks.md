@@ -21,7 +21,6 @@ query = query
 
 This means every `create` operation of models using this adapter will build and execute a `createOne[ModelName]` mutation with a required argument named `data` of type `[ModelName]CreateInput`.
 
-
 ```javascript
 class Post extends Model {
   ...
@@ -66,8 +65,6 @@ Currently all adapter methods are overridable.
 
 > Note that hooks completely override adapter methods.
 
-
-
 ## Lifecycle Hooks
 
 Lifecycle hooks are called before or after a `create`, `update` or `delete` operation. This gives you the opportunity to further modify mutation data or completely abort the operation.
@@ -75,17 +72,17 @@ Lifecycle hooks are called before or after a `create`, `update` or `delete` oper
 Here is an example of a `Location` model that has an `Address` model. Changes might have been made to an instantiated location's address directly.
 
 ```javascript
-const location = await Location.with('address').findUnique({ id: 1 })
+const location = await Location.with("address").findUnique({ id: 1 });
 
-location.address.is_public = false
-location.$save()
+location.address.is_public = false;
+location.$save();
 ```
 
 In this case,
 
 ```javascript
-location.$isDirty() // returns false
-location.$isDeepDirty() // return true
+location.$isDirty(); // returns false
+location.$isDeepDirty(); // return true
 ```
 
 Now, to save the location and the changes made to its address, supply an `$updating` hook to make changes to the update data.
@@ -100,15 +97,13 @@ class Location extends Model {
       $updating(model: Location, data: Attributes) {
         if (model.address && model.address.$isDirty()) {
           data.address = {
-            update: model.address.$getChanges(),
+            update: model.address.$getAttributeChanges(),
           }
         }
       },
     }
 }
 ```
-
-
 
 ## Available lifecycle hooks
 
@@ -145,9 +140,6 @@ class Location extends Model {
 }
 ```
 
-When `false` is returned at `$creating`,  `$updating` and `$deleting`, the operation is aborted.
+When `false` is returned at `$creating`, `$updating` and `$deleting`, the operation is aborted.
 
 > Note that `$creating` and `$created` hooks are not triggered when using `createMany`.
-
-
-

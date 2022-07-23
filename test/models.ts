@@ -35,6 +35,7 @@ export class Post extends Model {
   author!: User;
   comments!: Comment[];
   publisher!: Publisher;
+  tags!: string[];
 
   static fields(f: FieldBuilder) {
     f.id();
@@ -44,6 +45,7 @@ export class Post extends Model {
     f.model("author", User);
     f.model("comments", Comment).list().default([]);
     f.attr("publisher", { type: Publisher });
+    f.list.string("tags");
   }
 
   static hooks() {

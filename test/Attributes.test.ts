@@ -6,6 +6,7 @@ import {
   FieldAttribute,
   RelationshipAttribute,
 } from "../src";
+import { fakeUsers } from "./faker";
 
 class PostFieldBuilder extends FieldBuilder {
   public datetime(name: string) {
@@ -261,18 +262,5 @@ describe("Model Attributes", () => {
     expect(user.meta?.key2).to.equal(2);
     expect(user.meta?.key3).to.equal(3);
     expect(user.meta?.key4).to.equal(4);
-  });
-
-  it("should be dirty when json sub-fields changed", async () => {
-    const user = new UserModel({
-      name: "John Doe",
-      meta: JSON.stringify({ key1: 1, key2: 2 }),
-    });
-
-    expect(user.$isDirty()).to.equal(false);
-    if (user.meta) user.meta.key1 = 2;
-    expect(user.$isDirty()).to.equal(true);
-    if (user.meta) user.meta.key1 = 1;
-    expect(user.$isDirty()).to.equal(false);
   });
 });

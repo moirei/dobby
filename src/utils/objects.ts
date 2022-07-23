@@ -1,6 +1,7 @@
 import { isEqual, transform, isObject, get } from "lodash";
 import deepmerge from "deepmerge";
-import { Attributes } from "./../types";
+import { Attributes, Collectable, Relationships } from "./../types";
+import { Model } from "src";
 
 export const empty = (value: any) => {
   if (typeof value === "boolean") return false;
@@ -64,6 +65,59 @@ export const isChanged = (
   return changed;
 };
 
+export const isRelationshipsChanged = (
+  original: Relationships | Collectable<Model>,
+  relationships: Relationships | Collectable<Model>,
+  field?: string
+): boolean => {
+  if ((!original || !relationships) && !field) return false;
+  if (field) {
+    if (get(relationships, field) === undefined) return false;
+    return !isEqualRelationships(
+      get(original, field),
+      get(relationships, field)
+    );
+  }
+
+  let changed = false;
+  for (const key of Object.keys(relationships)) {
+    const a = get(relationships, key);
+    const b = get(original, key);
+    changed = !isEqualRelationships(a, b);
+    if (changed) break;
+  }
+
+  return changed;
+};
+
+const isEqualRelationships = <T extends Collectable<Model>>(
+  a: T,
+  b: T
+): boolean => {
+  let isEqual = a === b;
+  if (!isEqual && a && b) {
+    const aIsArray = Array.isArray(a);
+    const bIsArray = Array.isArray(b);
+    if (aIsArray && bIsArray) {
+      if (a.length == b.length) {
+        isEqual = !a.length;
+        if (!isEqual) {
+          for (let i = 0; i < a.length; i++) {
+            isEqual = isEqualRelationships(a[i], b[i]);
+            if (isEqual) break;
+          }
+        }
+      }
+    } else if (!aIsArray && !bIsArray) {
+      isEqual =
+        a.$isDirty() == a.$isDirty() &&
+        equals(a.$getAttributes(), b.$getAttributes());
+    }
+  }
+
+  return isEqual;
+};
+
 export function isNonNullObject(obj?: Object) {
   return obj !== null && typeof obj === "object";
 }
@@ -91,12 +145,12 @@ export function deepDiff(attributes: Attributes, original: Attributes) {
 
 /**
  * Merge two objects
- * @param  {Attributes} a  Object compared
- * @param  {Attributes} b  Object to compare with
+ * @param  {A} a  Object compared
+ * @param  {B} b  Object to compare with
  * @return {Object}           Return a new object who represent the diff
  */
-export function mergeDeep(a: Attributes, b: Attributes) {
-  return deepmerge(a, b, {
+export function mergeDeep<A, B>(a: A, b: B): A & B {
+  return deepmerge(a as any, b as any, {
     arrayMerge: (_dest, source, _options) => source,
   });
 }

@@ -1,6 +1,8 @@
-import { FieldAttribute, RelationshipAttribute } from "../fields";
+import { RelationshipAttribute } from "../fields";
 import { Adapter } from "../adapters";
 import { Model } from "../Model";
+import { Collection } from "src/Collection";
+import { Collectable } from ".";
 
 export type ModelType = typeof Model;
 
@@ -12,6 +14,10 @@ export type ModelConstructor<T, TArgs extends [Attributes] = any> = Function &
 
 export interface Attributes {
   [field: string]: any;
+}
+
+export interface Relationships {
+  [field: string]: Collectable<Model>;
 }
 
 export interface HookCache<T extends ModelType> {
