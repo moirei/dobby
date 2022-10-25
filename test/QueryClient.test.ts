@@ -18,7 +18,7 @@ class TestAdapter extends DefaultAdapter {
   findMany(query: Query<any>, model: ModelType): Query<any> | void {
     return this.executeHook(model, "findMany", [query, model], () => {
       const operation = plural(
-        String(model.name).toLocaleLowerCase().replace("model", "")
+        String(model.entity).toLocaleLowerCase().replace("model", "")
       );
       query
         .operation(operation)

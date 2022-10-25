@@ -26,7 +26,7 @@ export default class FieldAttribute {
       this.isList = options.list || false;
       if (options.type) {
         if (typeof options.type !== "string") {
-          this.type = options.type.name;
+          this.type = options.type.entity;
         } else {
           this.type = options.type;
         }

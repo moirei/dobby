@@ -7,10 +7,10 @@ Hooks made it possible to tune how models respond to how queries are built for C
 CRUD operation hooks override the operation definition of the client adapter. For example, the Default Adapter interprets the `create` operation with something that looks like the below
 
 ```javascript
-const operation = "createOne" + upperFirst(model.name);
+const operation = "createOne" + upperFirst(model.entity);
 query = query
   .where("data", {
-    type: upperFirst(model.name) + "CreateInput",
+    type: upperFirst(model.entity) + "CreateInput",
     required: true,
     value: data,
   })
@@ -23,14 +23,15 @@ This means every `create` operation of models using this adapter will build and 
 
 ```javascript
 class Post extends Model {
+  static entity = 'Post';
   ...
 
   static hooks() {
     return {
       create(data: any, query: Query, model: ModelType): Query | void{
-        const operation = "create" + upperFirst(model.name);
+        const operation = "create" + upperFirst(model.entity);
         query.where('data', {
-          type: upperFirst(model.name) + "CreateInput",
+          type: upperFirst(model.entity) + "CreateInput",
           required: false,
           value: data,
         })
@@ -40,13 +41,13 @@ class Post extends Model {
       }
 
       createMany(data: any, query: Query, model: ModelType): Query | void{
-        const operation = "create" + plural(upperFirst(model.name));
+        const operation = "create" + plural(upperFirst(model.entity));
 
 		    // create and return a completely new query
         return model.newQuery()
           .select('*')
           .where("data", {
-            type: "[" + upperFirst(model.name) + "CreateInput]",
+            type: "[" + upperFirst(model.entity) + "CreateInput]",
             required: false,
             value: data,
           })
@@ -89,6 +90,7 @@ Now, to save the location and the changes made to its address, supply an `$updat
 
 ```javascript
 class Location extends Model {
+  static entity = 'Location';
   static primaryKey = 'handle'
   ...
 
@@ -109,6 +111,7 @@ class Location extends Model {
 
 ```javascript
 class Location extends Model {
+  static entity = 'Location';
   ...
 
   static hooks() {

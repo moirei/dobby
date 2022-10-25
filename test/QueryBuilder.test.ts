@@ -221,6 +221,8 @@ describe("Query Includes", () => {
 
   it("should inclue nested relationships defined with decorators", () => {
     class Writer extends Model {
+      static entity = "Writer";
+
       @id()
       // @ts-ignore
       id: number;
@@ -231,6 +233,8 @@ describe("Query Includes", () => {
     }
 
     class Book extends Model {
+      static entity = "Book";
+
       @id()
       // @ts-ignore
       id: number;
@@ -257,6 +261,7 @@ describe("Query Includes", () => {
 
 describe("Query Proxy", () => {
   class User extends Model {
+    static entity = "User";
     static dynamicQueryOperations: boolean = true;
 
     static get modelKey() {

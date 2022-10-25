@@ -132,14 +132,14 @@ export class Client {
   }
 
   protected registerModel(model: ModelType) {
-    if (!this.models.hasOwnProperty(model.name)) {
+    if (!this.models.hasOwnProperty(model.entity)) {
       Object.defineProperty(model, "client", {
         value: this,
         writable: false,
         enumerable: false,
         configurable: false,
       });
-      this.models[model.name] = model;
+      this.models[model.entity] = model;
     }
   }
 }

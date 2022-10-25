@@ -4,6 +4,7 @@ Being able to execute query operations dynamically means you're not restricted t
 
 ```javascript
 class Post extends Model{
+  static entity = 'Post';
     static dynamicQueryOperations: boolean = true;
     ...
 }
@@ -18,7 +19,7 @@ const response = await Post.where('id', 1)
 This will generate and execute the following query.
 
 ```graphql
-mutation($id: Int!) {
+mutation ($id: Int!) {
   publishPost(id: $id) {
     id
     title

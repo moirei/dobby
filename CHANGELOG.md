@@ -62,3 +62,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - fix: `$keepChanges` should effect relationships
 - feat: add native `toJSON` to Model
 - chore: faker for tests
+
+## 1.5.0
+
+- feat: introduce `entity` field in Models.

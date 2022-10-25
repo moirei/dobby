@@ -22,7 +22,7 @@ export default class RelationshipAttribute {
     options?: RelationshipOptions
   ) {
     this.value = options?.default;
-    this.type = model.name;
+    this.type = model.entity;
     this.isList = options?.list || false;
   }
 

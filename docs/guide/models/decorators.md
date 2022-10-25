@@ -6,6 +6,8 @@ Property decorators provide Typescript users a better typing support when defini
 import { Model, id, string } from '@moirei/dobby'
 
 class User extends Model {
+  static entity = 'User';
+
   @id()
   readonly id: string
 
@@ -20,120 +22,147 @@ class User extends Model {
 }
 ```
 
-
 ## Attribute decorators
+
 ### @attr
+
 Registers a property as an attribute field.
 
 ```javascript
 class User extends Model {
-  @attr()
-  name: string
+  static entity = "User";
 
-  @attr({ type: 'String' })
-  email: string
+  @attr()
+  name: string;
+
+  @attr({ type: "String" })
+  email: string;
 }
 ```
 
 ### @boolean
+
 Registers a property as a `Boolean` attribute field.
 
 ```javascript
 class User extends Model {
-  @boolean()
-  verified: boolean = false
+  static entity = "User";
 
   @boolean()
-  active: boolean
+  verified: boolean = false;
+
+  @boolean()
+  active: boolean;
 
   @boolean({ default: false })
-  admin: boolean
+  admin: boolean;
 
   @boolean(false)
-  local: boolean
+  local: boolean;
 }
 ```
+
 Properties `verified`, `admin` and `local` will be registered with default value `false`.
 
 ### @float
+
 Registers a property as a `Float` attribute field.
 
 ```javascript
 class User extends Model {
+  static entity = "User";
+
   @float()
-  visits: number
+  visits: number;
 }
 ```
+
 Field default and options can be provided just like `@boolean` above.
 
 ### @id
+
 Registers a property as an `ID` attribute field.
 
 ```javascript
 class User extends Model {
+  static entity = "User";
+
   @id()
-  id: number | string
+  id: number | string;
 }
 ```
+
 Alternative type name can be provided as an argument.
 
 ### @integer
+
 Registers a property as a `Int` attribute field. Similar to `@float`.
 
 ```javascript
 class User extends Model {
+  static entity = "User";
+
   @integer()
-  visits: number
+  visits: number;
 }
 ```
 
 ### @json
+
 Registers a property as a `Json` attribute field.
 Using `@json` does not allow lists.
 
 ```javascript
 class User extends Model {
+  static entity = "User";
+
   @json()
-  meta: Record<string, any> = {}
+  meta: Record<string, any> = {};
 }
 ```
+
 Alternative type name can be provided as an argument.
 
 ### @string
+
 Registers a property as a `String` attribute field.
 Field default and options can be provided similar to the above examples.
 
 ```javascript
 class User extends Model {
-  @string()
-  name: string
-
-  @string('PENDING')
-  status: string
+  static entity = "User";
 
   @string()
-  tags: string[] = []
+  name: string;
+
+  @string("PENDING")
+  status: string;
+
+  @string()
+  tags: string[] = [];
 
   @string(options)
-  otherField: string
+  otherField: string;
 }
 ```
-
 
 ## Relationship decorators
 
 ### @model
+
 Registers a property as a Model relationship field.
 
 ```javascript
 class User extends Model {
+  static entity = "User";
+
   @model(() => Post)
-  post: Post
+  post: Post;
 
   @model(() => Address, { list: true })
-  addresses: Address[]
+  addresses: Address[];
 
   @model(() => Comments)
-  post: Comments[] = []
+  post: Comments[] = [];
 }
 ```

@@ -4,7 +4,6 @@ You can easily extend the available build methods used for defining model fields
 
 The example below adds `timestamps` method which can be used to define an attribute as a `Moment` object.
 
-
 ```javascript
 import { FieldBuilder as BaseFieldBuilder, FieldAttribute } from '@moirei/dobby'
 import moment, { Moment } from 'moment'
@@ -47,8 +46,11 @@ export default class FieldBuilder extends BaseFieldBuilder {
 ```
 
 Now a model can use the new field methods.
+
 ```javascript
 class User extends Model{
+  static entity = 'User';
+
   id!: string;
   created_at!: Moment;
   updated_at?: Moment;
@@ -84,6 +86,7 @@ abstract class BaseModel extends Model{
 ...
 
 class User extends BaseModel{
+  static entity = 'User'
   ...
 
   static fields(f: FieldBuilder) {
@@ -94,4 +97,3 @@ class User extends BaseModel{
 }
 
 ```
-

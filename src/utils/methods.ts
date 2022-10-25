@@ -77,7 +77,7 @@ export function resolveType(value: any, type?: string | ModelType): string {
         return upperFirst(type);
     }
   } else if (type) {
-    return type.name;
+    return type.entity;
   }
 
   const t: string | false = resolveValueType(value);

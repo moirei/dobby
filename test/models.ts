@@ -2,11 +2,12 @@ import { plural } from "pluralize";
 import { Model, Adapter, FieldBuilder } from "../src";
 
 export const findManyHook: Adapter["findMany"] = (query, model) => {
-  const operation = plural(model.name).toLocaleLowerCase();
+  const operation = plural(model.entity).toLocaleLowerCase();
   query.operation(operation).parseWith((response) => response.data[operation]);
 };
 
 export class User extends Model {
+  static entity = "User";
   static queryAttributes: string[] = ["id", "name"];
 
   id!: string;
@@ -25,6 +26,7 @@ export class User extends Model {
 }
 
 export class Post extends Model {
+  static entity = "Post";
   static queryAttributes: string[] = ["id", "name"];
   static queryRelationships: string[] = ["author"];
 
@@ -56,6 +58,7 @@ export class Post extends Model {
 }
 
 export class Comment extends Model {
+  static entity = "Comment";
   static queryRelationships: string[] = ["author"];
 
   id!: string;
@@ -72,6 +75,8 @@ export class Comment extends Model {
 }
 
 export class Publisher extends Model {
+  static entity = "Publisher";
+
   id!: string;
   name!: string;
 

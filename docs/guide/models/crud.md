@@ -6,64 +6,62 @@ The CRUD methods are patterned after the [OpenCRUD](https://www.opencrud.org/) s
 
 When using the `create`, `update`, `upsert` methods, ensure the provided input data are properly formatted for your backend.
 
-
 ## Creating Models
 
 ```javascript
 const user = await User.create(data);
 ```
+
 The `$save` method may also be used to create instantiated models.
 
 ```javascript
 const user = new User(data);
 await user.$save(data);
 ```
+
 The `createMany` method can also used to create multiple records.
 
 ```javascript
-const users = await User.createMany([
-  user1Data,
-  user2Data,
-])
+const users = await User.createMany([user1Data, user2Data]);
 ```
 
 The default adapter translates this into a `createManyUsers` mutation.
 
-It's generally important to be able to differentiate created (persisted) records from transient instances. Dobby considers model instances with defined primary keys in the `original` attributes container to be *existing*.
+It's generally important to be able to differentiate created (persisted) records from transient instances. Dobby considers model instances with defined primary keys in the `original` attributes container to be _existing_.
 
 ```javascript
 const user1 = await User.create(data);
-const user2 = new User({ name: 'James Franco' })
-const user3 = User.make({ name: 'John Doe' })
-const user4 = User.make({ id: 4, name: 'Joe Blow' })
+const user2 = new User({ name: "James Franco" });
+const user3 = User.make({ name: "John Doe" });
+const user4 = User.make({ id: 4, name: "Joe Blow" });
 
-user1.$exists() // returns true
-user2.$exists() // returns false
-user3.$exists() // returns false
-user4.$exists() // returns true
+user1.$exists(); // returns true
+user2.$exists(); // returns false
+user3.$exists(); // returns false
+user4.$exists(); // returns true
 ```
 
 Note that the Query Builder automatically adds the primary key field to the query fields such that
 
 ```javascript
-const user = await User.select('name').create({
-  name: 'John Doe',
-  email: 'john@domain.com',
-})
+const user = await User.select("name").create({
+  name: "John Doe",
+  email: "john@domain.com",
+});
 ```
 
 will be executed as
 
 ```graphql
-mutation ($data: UserCreateInput!){
-  createOneUser(data: $data){
-    id, name
+mutation ($data: UserCreateInput!) {
+  createOneUser(data: $data) {
+    id
+    name
   }
 }
 ```
 
 The returned value of `id` is used to hidrate the created instance, allowing calling `$exists` on the instance to return `true`.
-
 
 ## Retrieving Models
 
@@ -87,14 +85,14 @@ const object = user.$toJson();
 
 This will return all attribute values, including the JSON objects of related models.
 
-
-
 ### Hot Find Unique
 
 To retrieve a model and quickly return an instance while its contents are being fetched, you may use the `hotFindUnque` method.
 
 ```javascript
 class User extends Model{
+  static entity = 'User';
+
   ...
   get $loaded(){
     return !!this.$getKey()
@@ -103,11 +101,11 @@ class User extends Model{
 ```
 
 ```javascript
-const user = User.hotFindUnque({ id: 1 })
-this.$loaded // return false
+const user = User.hotFindUnque({ id: 1 });
+this.$loaded; // return false
 
 // wait x ms
-this.$loaded // return true
+this.$loaded; // return true
 ```
 
 This setup may prove useful in reactive frontends.
@@ -115,28 +113,24 @@ This setup may prove useful in reactive frontends.
 The method is not included in the Query Builder and can therefore only be used directly from a model class. To provide more query options you pass the a second argument which receives the query.
 
 ```javascript
-const user = User.hotFindUnque({ id: 1 }, query => {
-  query.select('*').include('*')
-})
+const user = User.hotFindUnque({ id: 1 }, (query) => {
+  query.select("*").include("*");
+});
 ```
-
-
-
 
 ## Count
 
 You can also count records with the `count` method. This performs the `findMany` operation with the model's primary key as the only selected field.
 
 ```javascript
-const count = await User.count()
+const count = await User.count();
 // or
-const count = await User.newQuery().count()
+const count = await User.newQuery().count();
 
-if(count > 0){
+if (count > 0) {
   //
 }
 ```
-
 
 ## Updates
 
@@ -157,32 +151,37 @@ Existing models can also be updated using the `$update` method. However, the bel
 const user = User.make({
   id: 1,
   name: "John",
-  email: "john@mail.com"
+  email: "john@mail.com",
 });
 await user.$update();
 ```
-You can also *Update or Create* a record with `upsert`.
+
+You can also _Update or Create_ a record with `upsert`.
 
 ```javascript
-const user = await User.upsert({
-  id: 1,
-  name: 'John Doe'
-}, {
-  name: 'John Doe',
-  email: 'john@mail.com',
-})
+const user = await User.upsert(
+  {
+    id: 1,
+    name: "John Doe",
+  },
+  {
+    name: "John Doe",
+    email: "john@mail.com",
+  }
+);
 ```
 
 This will build and execute the follow query
 
 ```graphql
-mutation ($where: UserWhereInput!, $data: UserUpdateInput!){
-  upsertOneUser(where: $where, data: $data){
-    id, name, email
+mutation ($where: UserWhereInput!, $data: UserUpdateInput!) {
+  upsertOneUser(where: $where, data: $data) {
+    id
+    name
+    email
   }
 }
 ```
-
 
 ## Deleting Models
 
@@ -192,6 +191,6 @@ Existing models can be deleted by either using the `delete` method or the `$dele
 await User.delete({ id: 1 });
 
 // same as
-const user = await User.findUnique({ id: 1 })
-await user.$delete()
+const user = await User.findUnique({ id: 1 });
+await user.$delete();
 ```

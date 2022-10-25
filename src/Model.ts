@@ -1,5 +1,5 @@
 import { FetchPolicy } from "apollo-client";
-import { cloneDeep, get, isUndefined, pickBy } from "lodash";
+import { cloneDeep, get, isNil, isUndefined, pickBy } from "lodash";
 import { Query } from "./graphql";
 import {
   Attributes,
@@ -34,11 +34,23 @@ import { FieldBuilder, FieldAttribute, RelationshipAttribute } from "./fields";
 import { Collection } from "./Collection";
 
 export abstract class Model {
+  private static $entity: string;
+
+  /**
+   * The model's name.
+   */
+  static get entity() {
+    return this.$entity || this.name;
+  }
+  static set entity(value: string) {
+    this.$entity = value;
+  }
+
   /**
    * The model's unique identofier.
    */
   static get modelKey() {
-    return this.name;
+    return this.entity;
   }
 
   /**
@@ -369,13 +381,13 @@ export abstract class Model {
       this.cachedHooks = {};
     }
 
-    if (this.cachedHooks[this.name]) {
-      return this.cachedHooks[this.name];
+    if (this.cachedHooks[this.entity]) {
+      return this.cachedHooks[this.entity];
     }
 
-    this.cachedHooks[this.name] = this.hooks();
+    this.cachedHooks[this.entity] = this.hooks();
 
-    return this.cachedHooks[this.name];
+    return this.cachedHooks[this.entity];
   }
 
   /**
@@ -1106,9 +1118,7 @@ export abstract class Model {
     return new Promise((resolve) => {
       this.$newQuery()
         .update(undefined, cloneDeep(this.changedAttributes), this)
-        .then((update) => {
-          resolve(update);
-        });
+        .then((update) => resolve(update));
     });
   }
 
@@ -1327,7 +1337,7 @@ export abstract class Model {
    * @returns {boolean}
    */
   public $exists(): boolean {
-    return this.originalAttributes.hasOwnProperty(this.$self().primaryKey);
+    return !isNil(this.originalAttributes[this.$self().primaryKey]);
   }
 
   /**
