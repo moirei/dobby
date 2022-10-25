@@ -1,4 +1,4 @@
-import { FetchPolicy } from "apollo-client";
+import ApolloClient, { FetchPolicy } from "apollo-client";
 import { cloneDeep, get, isNil, isUndefined, pickBy } from "lodash";
 import { Query } from "./graphql";
 import {
@@ -47,7 +47,7 @@ export abstract class Model {
   }
 
   /**
-   * The model's unique identofier.
+   * The model's unique identifier.
    */
   static get modelKey() {
     return this.entity;
@@ -213,6 +213,17 @@ export abstract class Model {
         Object.defineProperty(this, name, options);
       }
     }
+  }
+
+  /**
+   * Get the registered apollo client
+   * @returns {ApolloClient<any>}
+   */
+  static apollo(): ApolloClient<any> {
+    if (!this.client) {
+      error(`Cannot access apollo client on ${this.entity}`);
+    }
+    return this.client.apollo;
   }
 
   /**
@@ -1077,16 +1088,26 @@ export abstract class Model {
   }
 
   /**
-   * Write to the changedAttributes container.
+   * Write to the changes container.
    *
    * @param {string} attribute
    * @param {*} value
    * @returns {this}
    */
   public $setChangesAttribute(attribute: string, value: any): this {
-    const attributes: Attributes = {
+    return this.$fillChangesAttribute({
       [attribute]: value,
-    };
+    });
+  }
+
+  /**
+   * Write to the changes container.
+   *
+   * @param {string} attribute
+   * @param {*} value
+   * @returns {this}
+   */
+  public $fillChangesAttribute(attributes: Attributes): this {
     this.changedAttributes = mergeDeep(this.changedAttributes, attributes);
     return this;
   }
@@ -1207,6 +1228,18 @@ export abstract class Model {
    */
   public $getRelationshipChanges(): Relationships {
     return this.changedRelationships;
+  }
+
+  /**
+   * Get all changed field values.
+   *
+   * @returns {Attributes|Relationships}
+   */
+  public $getChanges(): Attributes | Relationships {
+    return {
+      ...this.$getAttributeChanges(),
+      ...this.$getRelationshipChanges(),
+    };
   }
 
   /**

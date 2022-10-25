@@ -66,3 +66,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ## 1.5.0
 
 - feat: introduce `entity` field in Models.
+
+## 1.5.1
+
+- feat: add static `apollo` accessor method on Model.
+- feat: add `$fillChangesAttribute` method.
+- feat: add `$getChanges` method.
