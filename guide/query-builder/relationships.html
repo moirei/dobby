@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Relationships | Dobby</title>
+    <meta name="generator" content="VuePress 1.8.2">
+    <link rel="icon" href="/dobby/logo.png">
+    <link rel="apple-touch-icon" href="/dobby/icons/apple-touch-icon-152x152.png">
+    <meta name="description" content="GraphQL data models made easy.">
+    <meta property="og:site_name" content="Dobby">
+    <meta property="og:title" content="Relationships">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="/guide/query-builder/relationships.html">
+    <meta name="twitter:title" content="Relationships">
+    <meta name="twitter:url" content="/guide/query-builder/relationships.html">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="theme-color" content="#3eaf7c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="msapplication-TileImage" content="/icons/msapplication-icon-144x144.png">
+    <meta name="msapplication-TileColor" content="#000000">
+    
+    <link rel="preload" href="/dobby/assets/css/0.styles.dfa1a5cf.css" as="style"><link rel="preload" href="/dobby/assets/js/app.d1fa0665.js" as="script"><link rel="preload" href="/dobby/assets/js/2.0c3bff11.js" as="script"><link rel="preload" href="/dobby/assets/js/22.4ba21d7e.js" as="script"><link rel="prefetch" href="/dobby/assets/js/10.c8a66029.js"><link rel="prefetch" href="/dobby/assets/js/11.ba11236c.js"><link rel="prefetch" href="/dobby/assets/js/12.ff9a7298.js"><link rel="prefetch" href="/dobby/assets/js/13.c7120bd2.js"><link rel="prefetch" href="/dobby/assets/js/14.22eb13c3.js"><link rel="prefetch" href="/dobby/assets/js/15.715851fc.js"><link rel="prefetch" href="/dobby/assets/js/16.8fbed22f.js"><link rel="prefetch" href="/dobby/assets/js/17.78ff0958.js"><link rel="prefetch" href="/dobby/assets/js/18.9ff9f214.js"><link rel="prefetch" href="/dobby/assets/js/19.164b8e25.js"><link rel="prefetch" href="/dobby/assets/js/20.3f73a18f.js"><link rel="prefetch" href="/dobby/assets/js/21.5e75273a.js"><link rel="prefetch" href="/dobby/assets/js/23.5cc52852.js"><link rel="prefetch" href="/dobby/assets/js/24.5a7ec6d9.js"><link rel="prefetch" href="/dobby/assets/js/3.396b1a95.js"><link rel="prefetch" href="/dobby/assets/js/4.6cf1e0cf.js"><link rel="prefetch" href="/dobby/assets/js/5.1214c687.js"><link rel="prefetch" href="/dobby/assets/js/6.16373f7f.js"><link rel="prefetch" href="/dobby/assets/js/7.5f58fcfe.js"><link rel="prefetch" href="/dobby/assets/js/8.7044b974.js"><link rel="prefetch" href="/dobby/assets/js/9.d306db64.js">
+    <link rel="stylesheet" href="/dobby/assets/css/0.styles.dfa1a5cf.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/dobby/" class="home-link router-link-active"><!----> <span class="site-name">Dobby</span></a> <div class="links"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="/dobby/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/dobby/installation.html" class="nav-link">
+  Guide
+</a></div> <a href="https://github.com/moirei/dobby" target="_blank" rel="noopener noreferrer" class="repo-link">
+    Github
+    <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></nav></div></header> <div class="sidebar-mask"></div> <aside class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="/dobby/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/dobby/installation.html" class="nav-link">
+  Guide
+</a></div> <a href="https://github.com/moirei/dobby" target="_blank" rel="noopener noreferrer" class="repo-link">
+    Github
+    <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></nav>  <ul class="sidebar-links"><li><a href="/dobby/configuration.html" class="sidebar-link">Configuration</a></li><li><section class="sidebar-group depth-0"><p class="sidebar-heading"><span>Models</span> <!----></p> <ul class="sidebar-links sidebar-group-items"><li><a href="/dobby/guide/models/define-models.html" class="sidebar-link">Defining Models</a></li><li><a href="/dobby/guide/models/conventions.html" class="sidebar-link">Conventions</a></li><li><a href="/dobby/guide/models/crud.html" class="sidebar-link">CRUD</a></li><li><a href="/dobby/guide/models/fields.html" class="sidebar-link">Fields &amp; Attributes</a></li><li><a href="/dobby/guide/models/decorators.html" class="sidebar-link">Field Decorators</a></li><li><a href="/dobby/guide/models/hooks.html" class="sidebar-link">Hooks</a></li><li><a href="/dobby/guide/models/customising-models.html" class="sidebar-link">Customising Models</a></li></ul></section></li><li><section class="sidebar-group depth-0"><a href="/dobby/guide/query-builder/" class="sidebar-heading clickable router-link-active open"><span>Query Builder</span> <!----></a> <ul class="sidebar-links sidebar-group-items"><li><a href="/dobby/guide/query-builder/select-fields.html" class="sidebar-link">Select fields</a></li><li><a href="/dobby/guide/query-builder/query-arguments.html" class="sidebar-link">Arguments</a></li><li><a href="/dobby/guide/query-builder/relationships.html" aria-current="page" class="active sidebar-link">Relationships</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/dobby/guide/query-builder/relationships.html#including-all-relationships" class="sidebar-link">Including All Relationships</a></li><li class="sidebar-sub-header"><a href="/dobby/guide/query-builder/relationships.html#advanced-subqueries" class="sidebar-link">Advanced Subqueries</a></li></ul></li><li><a href="/dobby/guide/query-builder/dynamic-query-operations.html" class="sidebar-link">Dynamic Query Operations</a></li></ul></section></li><li><section class="sidebar-group depth-0"><p class="sidebar-heading"><span>Advanced</span> <!----></p> <ul class="sidebar-links sidebar-group-items"><li><a href="/dobby/guide/advanced/adapters.html" class="sidebar-link">Adapters</a></li><li><a href="/dobby/guide/advanced/field-builders.html" class="sidebar-link">Field Builders</a></li></ul></section></li></ul> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="relationships"><a href="#relationships" class="header-anchor">#</a> Relationships</h1> <p>By default relationships included in queries are those specified by the model's <code>queryRelationships</code> option.</p> <p>The include a related model in a query, the <code>include</code> or <code>with</code> methods can be used.</p> <div class="language-javascript extra-class"><pre class="language-javascript"><code>User<span class="token punctuation">.</span><span class="token function">include</span><span class="token punctuation">(</span><span class="token string">'posts'</span><span class="token punctuation">)</span>
+<span class="token comment">// or</span>
+User<span class="token punctuation">.</span><span class="token function">newQuery</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">include</span><span class="token punctuation">(</span><span class="token string">'posts'</span><span class="token punctuation">)</span>
+</code></pre></div><p>You can also specify query fields to select.</p> <div class="language-javascript extra-class"><pre class="language-javascript"><code>query<span class="token punctuation">.</span><span class="token function">include</span><span class="token punctuation">(</span><span class="token string">'posts'</span><span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token string">'id'</span><span class="token punctuation">,</span> <span class="token string">'name'</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+</code></pre></div><h2 id="including-all-relationships"><a href="#including-all-relationships" class="header-anchor">#</a> Including All Relationships</h2> <p>To include all relationships with their default configuration, use the wildcard syntax.</p> <div class="language-javascript extra-class"><pre class="language-javascript"><code>query<span class="token punctuation">.</span><span class="token function">include</span><span class="token punctuation">(</span><span class="token string">'*'</span><span class="token punctuation">)</span>
+
+<span class="token comment">// or</span>
+query<span class="token punctuation">.</span><span class="token function">includeAll</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre></div><h2 id="advanced-subqueries"><a href="#advanced-subqueries" class="header-anchor">#</a> Advanced Subqueries</h2> <p>Included relationship's queries can be further defined with a callback as the second argument</p> <div class="language-javascript extra-class"><pre class="language-javascript"><code>query<span class="token punctuation">.</span><span class="token function">include</span><span class="token punctuation">(</span><span class="token string">&quot;posts&quot;</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token parameter">query</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+  query<span class="token punctuation">.</span><span class="token function">select</span><span class="token punctuation">(</span><span class="token string">&quot;id&quot;</span><span class="token punctuation">,</span> <span class="token string">&quot;title&quot;</span><span class="token punctuation">)</span>
+       <span class="token punctuation">.</span><span class="token function">include</span><span class="token punctuation">(</span><span class="token string">&quot;comments&quot;</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>Alternatively, a declarative object can be provided</p> <div class="language-javascript extra-class"><pre class="language-javascript"><code>query<span class="token punctuation">.</span><span class="token function">include</span><span class="token punctuation">(</span><span class="token string">&quot;posts&quot;</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+  where<span class="token operator">:</span> <span class="token punctuation">{</span>
+    id<span class="token operator">:</span> <span class="token number">1</span><span class="token punctuation">,</span>
+    where<span class="token operator">:</span> <span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token string">&quot;PostWhereUniqueInput&quot;</span><span class="token punctuation">,</span>
+      required<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+      value<span class="token operator">:</span> <span class="token punctuation">{</span>
+        id<span class="token operator">:</span> <span class="token number">2</span><span class="token punctuation">,</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  select<span class="token operator">:</span> <span class="token punctuation">{</span>
+    id<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+    content<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token comment">// or</span>
+  select<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">'id'</span><span class="token punctuation">,</span> <span class="token string">'content'</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+  include<span class="token operator">:</span> <span class="token punctuation">{</span>
+    publisher<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+    comments<span class="token operator">:</span> <span class="token punctuation">{</span>
+      id<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+      text<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token comment">// or</span>
+  include<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">'publisher'</span><span class="token punctuation">,</span> <span class="token string">'comments'</span><span class="token punctuation">]</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre></div><p>Multiple includes can also be made with</p> <div class="language-javascript extra-class"><pre class="language-javascript"><code>query<span class="token punctuation">.</span><span class="token function">include</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  posts<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">'id'</span><span class="token punctuation">,</span> <span class="token string">'title'</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+  comments<span class="token operator">:</span> <span class="token punctuation">{</span>
+    select<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">'id'</span><span class="token punctuation">,</span> <span class="token string">'text'</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+    include<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">'author'</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre></div></div> <footer class="page-edit"><!----> <!----></footer> <div class="page-nav"><p class="inner"><span class="prev">
+      ←
+      <a href="/dobby/guide/query-builder/query-arguments.html" class="prev">
+        Arguments
+      </a></span> <span class="next"><a href="/dobby/guide/query-builder/dynamic-query-operations.html">
+        Dynamic Query Operations
+      </a>
+      →
+    </span></p></div> </main></div><div class="global-ui"></div></div>
+    <script src="/dobby/assets/js/app.d1fa0665.js" defer></script><script src="/dobby/assets/js/2.0c3bff11.js" defer></script><script src="/dobby/assets/js/22.4ba21d7e.js" defer></script>
+  </body>
+</html>
