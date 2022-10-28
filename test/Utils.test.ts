@@ -1,5 +1,6 @@
 import { faker } from "@faker-js/faker";
-import { expect } from "chai";
+import chai, { expect } from "chai";
+import spies from "chai-spies";
 import { Relationships } from "../src";
 import { Collection } from "../src/Collection";
 import { fakePosts, fakeUsers } from "./faker";
@@ -9,7 +10,10 @@ import {
   isChanged,
   isRelationshipsChanged,
   extractArrayRelationshipChanges,
+  willMutateLifecycleHook,
 } from "../src/utils";
+
+chai.use(spies);
 
 describe("Model Utils", () => {
   it("should resolve primitive value types", () => {
@@ -158,5 +162,70 @@ describe("#extractArrayRelationshipChanges", () => {
     expect(create).to.be.empty;
     expect(update).to.be.empty;
     expect(deleting).to.be.empty;
+  });
+});
+
+describe.only("#willMutateLifecycleHook", () => {
+  it("willMutateLifecycleHook should return false if hook returns false", () => {
+    const name = "$creating";
+    const args: any = [1, 2];
+    const modelType: any = { getHook: () => null };
+
+    const hook = () => false;
+    const getHookSpy = chai.spy.on(modelType, "getHook", () => hook);
+
+    const directive = willMutateLifecycleHook(modelType, name, args);
+
+    expect(getHookSpy).to.have.been.called.with(name);
+    expect(directive).to.be.false;
+  });
+
+  it("willMutateLifecycleHook should return directive if truthy", () => {
+    const name = "$creating";
+    const args: any = [1, 2];
+    const modelType: any = { getHook: () => null };
+
+    const data = faker.datatype.json();
+
+    const hook = () => data;
+    const getHookSpy = chai.spy.on(modelType, "getHook", () => hook);
+
+    const directive = willMutateLifecycleHook(modelType, name, args);
+
+    expect(getHookSpy).to.have.been.called.with(name);
+    expect(directive).to.equal(data);
+  });
+
+  it("willMutateLifecycleHook should return arg #1 by default", () => {
+    const name = "$creating";
+    const args: any = [1, 2];
+    const modelType: any = { getHook: () => null };
+
+    const hook = () => {
+      //
+    };
+    const getHookSpy = chai.spy.on(modelType, "getHook", () => hook);
+
+    const directive = willMutateLifecycleHook(modelType, name, args);
+
+    expect(getHookSpy).to.have.been.called.with(name);
+    expect(directive).to.equal(args[1]);
+  });
+
+  it("willMutateLifecycleHook should return empty object if arg #2 is falsy", () => {
+    const name = "$creating";
+    const args: any = [1, null];
+    const modelType: any = { getHook: () => null };
+
+    const hook = () => {
+      //
+    };
+    const getHookSpy = chai.spy.on(modelType, "getHook", () => hook);
+
+    const directive = willMutateLifecycleHook(modelType, name, args);
+
+    expect(getHookSpy).to.have.been.called.with(name);
+    expect(typeof directive == "object").to.be.true;
+    expect(directive).to.empty;
   });
 });

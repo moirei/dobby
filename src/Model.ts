@@ -1035,18 +1035,44 @@ export abstract class Model {
   ): this {
     const field = this.$self().getRelationshipField(relationship);
     if (field) {
-      if (field.isList) {
-        if (!Array.isArray(data)) {
-          error("Cannot assign non-array value to list field");
+      if (field.isList && !Array.isArray(data)) {
+        error("Cannot assign non-array value to list field");
+      }
+
+      if (this.originalRelationships[relationship]) {
+        if (field.isList) {
+          const relationshipModel = this.originalRelationships[
+            relationship
+          ] as Model[];
+
+          relationshipModel.length = 0; // clear array, keep object ref
+          (data as Array<Model | Attributes>).forEach((dataEntry) => {
+            relationshipModel.push(
+              // @ts-ignore
+              dataEntry instanceof Model
+                ? dataEntry
+                : field.model.make(dataEntry)
+            );
+          });
+        } else {
+          const relationshipModel = this.originalRelationships[
+            relationship
+          ] as Model;
+          relationshipModel.$fillOriginal(
+            data instanceof Model ? data.$toJson() : data
+          );
         }
-        const models = ((data as Attributes[]) || []).map((attr) =>
-          // @ts-ignore
-          attr instanceof Model ? attr : field.model.make(attr)
-        );
-        this.originalRelationships[relationship] = Collection.from(models);
       } else {
-        this.originalRelationships[relationship] =
-          data instanceof Model ? data : field.model.make(data);
+        if (field.isList) {
+          const models = ((data as Attributes[]) || []).map((dataEntry) =>
+            // @ts-ignore
+            dataEntry instanceof Model ? dataEntry : field.model.make(dataEntry)
+          );
+          this.originalRelationships[relationship] = Collection.from(models);
+        } else {
+          this.originalRelationships[relationship] =
+            data instanceof Model ? data : field.model.make(data);
+        }
       }
     }
 

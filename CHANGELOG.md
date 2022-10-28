@@ -67,8 +67,13 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 - feat: introduce `entity` field in Models.
 
-## 1.5.1
+## 1.6.0
 
 - feat: add static `apollo` accessor method on Model.
 - feat: add `$fillChangesAttribute` method.
 - feat: add `$getChanges` method.
+
+## 1.6.1
+
+- feat: allow willMutateLifecycleHook to use returned directive
+- feat: allow `$attach` method to handle existing relationship (copy contents).

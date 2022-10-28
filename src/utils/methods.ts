@@ -161,7 +161,7 @@ export function willMutateLifecycleHook<
     return false;
   }
 
-  return args[1] || {};
+  return directive || args[1] || {};
 }
 
 type MutatedLifecycleHooks<T extends ModelType> = Pick<
