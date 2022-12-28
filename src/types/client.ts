@@ -1,4 +1,4 @@
-import { ApolloClient, FetchPolicy } from "apollo-client";
+import { ApolloClient } from "apollo-client";
 import { InMemoryCache } from "apollo-cache-inmemory";
 import { ApolloLink } from "apollo-link";
 import { Adapter } from "../adapters/Adapter";

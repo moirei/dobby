@@ -167,13 +167,15 @@ mutation ($id: Int) {
 
 ## Default Attribute Values
 
-One of the ways to define default values in using the model's `original` attributes bucket. When you create or retrieve a model, the raw values of the retrieved fields are stored here.
+One of the ways to define default values in using the model's `originalAttributes` and `originalRelationships` attributes bucket. When you create or retrieve a model, the raw values of the retrieved fields are stored here.
 
 ```javascript
+import { Attributes } from '@moirei/dobby'
+
 class User extends Model{
   static entity = 'User';
 
-  protected original = {
+  protected originalAttributes: Attributes = {
     email_verified: false
   }
 }
@@ -215,7 +217,7 @@ mutation ($id: Int) {
 }
 ```
 
-To make all anonyous variables required by default, set the `argumentRequiredByDefault` property to `true`.
+To make all anonymous variables required by default, set the `argumentRequiredByDefault` property to `true`.
 
 ```javascript
 class User extends Model{
@@ -314,13 +316,29 @@ await user2.$hydrateWith({ id: 2 });
 
 The `$hydrateWith` method supports arguments similar to the `findUnique` method.
 
-Now that `user2` is hydrate, its content can also be copied to `user1`.
+Now that `user2` is hydrated, its content can also be copied to `user1`.
 
 ```javascript
 user1.$copy(user2);
 
 user1.id; // returns "2"
 user1.name; // returns "John Doe"
+```
+
+## Cloning Models
+
+For one reason or another, you might find yourself needing to clone a model instance with its contents. This can be done with the `$clone` method.
+
+```typescript
+const user = await User.findUnique({ id });
+
+const userCopy = user.$clone();
+
+userCopy.name = "New name";
+
+user.$isDirty(); // false
+
+user.$copy(userCopy);
 ```
 
 ## Comparing Models

@@ -14,11 +14,10 @@ User.select('id', 'name', ...);
 User.select(['id', 'name']);
 ```
 
-
 ## Adding new fields
 
 The select method redefines the query fields. It overrides any previous selections.
-To add new fields to existing section, the query builder provides the `add` method.
+To add new fields to existing selections, the query builder provides the `add` method.
 
 ```javascript
 User.select('id').add('name');
@@ -30,12 +29,11 @@ User.select('id').add('name', 'email', ...);
 User.select('id').add(['name', 'email']);
 ```
 
-
 ## Select all fields
 
 ```javascript
-User.select('*');
+User.select("*");
 
 // or
-User.selectAll()
+User.selectAll();
 ```

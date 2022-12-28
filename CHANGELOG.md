@@ -77,3 +77,11 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 - feat: allow willMutateLifecycleHook to use returned directive
 - feat: allow `$attach` method to handle existing relationship (copy contents).
+
+## 1.7.0
+
+- feat: readonly mode for models
+- fix: JSON field attribute should consider stringified JSON
+- fix: should allow registering multiple models (with different `modelKey`) but of the same `entity`
+- fix: `$getAttribute` nullish default
+- feat: add `$clone` method

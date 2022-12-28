@@ -1,10 +1,10 @@
-import { ApolloClient, FetchPolicy } from "apollo-client";
+import { ApolloClient } from "apollo-client";
 import { InMemoryCache } from "apollo-cache-inmemory";
 import { HttpLink } from "apollo-link-http";
 import gql from "graphql-tag";
 import * as fetch from "cross-fetch";
 import { error } from "../utils";
-import { ModelType, QueryType, ClientConfig } from "../types";
+import { ModelType, QueryType, ClientConfig, FetchPolicy } from "../types";
 import { Adapter, DefaultAdapter } from "../adapters";
 import { DocumentNode } from "graphql";
 
@@ -14,9 +14,9 @@ export class Client {
 
   /**
    * The ApolloClient instance
-   * @type {ApolloClient}
+   * @type {ClientConfig['apollo']}
    */
-  public readonly apollo: ApolloClient<any>;
+  public readonly apollo!: ApolloClient<any>;
 
   constructor(config: ClientConfig = {}) {
     this.name = config.name || "default";
@@ -30,7 +30,8 @@ export class Client {
     if (config.apollo) {
       this.apollo = config.apollo;
     } else {
-      this.apollo = new ApolloClient({
+      const apollo_client = require("apollo-client");
+      this.apollo = new apollo_client.ApolloClient({
         link:
           config.link ||
           new HttpLink({
@@ -62,7 +63,7 @@ export class Client {
   }
 
   /**
-   * Execute a query or mutation.
+   * Execute a raw query or mutation.
    *
    * @param {QueryType} type
    * @param {string|DocumentNode} query
@@ -87,7 +88,7 @@ export class Client {
   }
 
   /**
-   * Execute a query.
+   * Execute a raw query.
    *
    * @param {string|DocumentNode} query
    * @param {Record<string, any>} variables
@@ -111,7 +112,7 @@ export class Client {
   }
 
   /**
-   * Execute a mutation.
+   * Execute a raw mutation.
    *
    * @param {string|DocumentNode} query
    * @param {Record<string, any>} variables
@@ -132,14 +133,14 @@ export class Client {
   }
 
   protected registerModel(model: ModelType) {
-    if (!this.models.hasOwnProperty(model.entity)) {
+    if (!this.models.hasOwnProperty(model.modelKey)) {
       Object.defineProperty(model, "client", {
         value: this,
         writable: false,
         enumerable: false,
         configurable: false,
       });
-      this.models[model.entity] = model;
+      this.models[model.modelKey] = model;
     }
   }
 }

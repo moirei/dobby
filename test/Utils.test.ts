@@ -165,7 +165,7 @@ describe("#extractArrayRelationshipChanges", () => {
   });
 });
 
-describe.only("#willMutateLifecycleHook", () => {
+describe("#willMutateLifecycleHook", () => {
   it("willMutateLifecycleHook should return false if hook returns false", () => {
     const name = "$creating";
     const args: any = [1, 2];

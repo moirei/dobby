@@ -1,5 +1,7 @@
 # Defining Models
 
+> If using Typescript, Attribute Decorators is the recommended way for defining model fields
+
 Models essentially describe a GraphQL type with its fields and relationships. Once defined, the model can be used to perform complex queries.
 
 > When defining a model, it's important to specify its `entity` name. However, this is not necessary if your bundler is configured to not minify class names.

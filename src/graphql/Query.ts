@@ -1,4 +1,3 @@
-import { FetchPolicy } from "apollo-client";
 import { has, isArray } from "lodash";
 import {
   error,
@@ -25,6 +24,7 @@ import {
   QueryFields,
   AdapterMethod,
   AdapterMethodArgs,
+  FetchPolicy,
 } from "../types";
 import { ArgumentsBucket } from "./ArgumentsBucket";
 import { Client } from "./Client";
@@ -91,7 +91,9 @@ export class Query<T extends ModelConstructor<Model>> {
    */
   protected get adapter(): Adapter | never {
     if (!this.model.client) {
-      error("No query client available. Ensure model has been registered.");
+      error(
+        `No query client available for model [${this.model.modelKey}]. Ensure model has been registered.`
+      );
     }
     return this.model.client.adapter;
   }
@@ -331,6 +333,8 @@ export class Query<T extends ModelConstructor<Model>> {
    * @return {Promise<M>}
    */
   async create<M extends InstanceType<T>>(data: Attributes, m?: M): Promise<M> {
+    this.assertMutable();
+
     const model = m || this.model.make();
 
     const createData = await willMutateLifecycleHook(this.model, "$creating", [
@@ -365,6 +369,8 @@ export class Query<T extends ModelConstructor<Model>> {
   async createMany<M extends InstanceType<T>>(
     data: Attributes[]
   ): Promise<M[]> {
+    this.assertMutable();
+
     const createManyData = data;
 
     const models: Attributes[] = await this.callAdapterMethod("createMany", [
@@ -389,6 +395,8 @@ export class Query<T extends ModelConstructor<Model>> {
     args: number | string | Attributes,
     data: number | string | Attributes
   ): Promise<M> {
+    this.assertMutable();
+
     const model: Attributes = await this.callAdapterMethod("upsert", [
       args,
       data,
@@ -410,6 +418,8 @@ export class Query<T extends ModelConstructor<Model>> {
     data?: Attributes,
     model?: M
   ): Promise<M> {
+    this.assertMutable();
+
     if (model) {
       const updateData = willMutateLifecycleHook(this.model, "$updating", [
         model,
@@ -481,6 +491,8 @@ export class Query<T extends ModelConstructor<Model>> {
     args?: number | string | Attributes,
     model?: M
   ) {
+    this.assertMutable();
+
     if (model) {
       if (willEraseLifecycleHook(this.model, "$deleting", [model]) === false)
         return model;
@@ -530,6 +542,9 @@ export class Query<T extends ModelConstructor<Model>> {
    * @returns {Query<T>}
    */
   public type(type: QueryType): Query<T> {
+    if (type == QueryType.MUTATION) {
+      this.assertMutable();
+    }
     this.queryType = type;
     return this;
   }
@@ -600,7 +615,7 @@ export class Query<T extends ModelConstructor<Model>> {
     extraVariables?: QueryWhere
   ): Promise<any> {
     if (!this.model.client) {
-      error("No client availaible for query.");
+      error(`No query client available for model [${this.model.modelKey}].`);
     }
     if (this.queryDepth > 0) {
       error("Cannot execute a child query.");
@@ -903,5 +918,11 @@ export class Query<T extends ModelConstructor<Model>> {
     // @ts-ignore
     const query = this.adapter[method](...args) as Query<T>;
     return query || this;
+  }
+
+  protected assertMutable(): void | never {
+    if (this.model.readonly) {
+      error(`Cannot mutate readonly model [${this.model.modelKey}].`);
+    }
   }
 }

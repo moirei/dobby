@@ -1,4 +1,3 @@
-import ApolloClient, { FetchPolicy } from "apollo-client";
 import { cloneDeep, get, isNil, isUndefined, pickBy } from "lodash";
 import { Query } from "./graphql";
 import {
@@ -20,6 +19,8 @@ import {
   Dictionary,
   Relationships,
   Collectable,
+  FetchPolicy,
+  ClientConfig,
 } from "./types";
 import {
   addQueryOptions,
@@ -34,23 +35,27 @@ import { FieldBuilder, FieldAttribute, RelationshipAttribute } from "./fields";
 import { Collection } from "./Collection";
 
 export abstract class Model {
-  private static $entity: string;
+  private static $_entity: string;
+  private static $_modelKey: string;
 
   /**
    * The model's name.
    */
   static get entity() {
-    return this.$entity || this.name;
+    return this.$_entity || this.name;
   }
   static set entity(value: string) {
-    this.$entity = value;
+    this.$_entity = value;
   }
 
   /**
    * The model's unique identifier.
    */
   static get modelKey() {
-    return this.entity;
+    return this.$_modelKey || this.entity;
+  }
+  static set modelKey(value: string) {
+    this.$_modelKey = value;
   }
 
   /**
@@ -127,17 +132,6 @@ export abstract class Model {
    */
   public static readonly client?: Client;
 
-  protected get attributes(): Attributes {
-    return mergeDeep(this.originalAttributes, this.changedAttributes);
-  }
-
-  protected get relationships(): Relationships {
-    return {
-      ...this.originalRelationships,
-      ...this.changedRelationships,
-    };
-  }
-
   /**
    * The field schema builder for the model.
    */
@@ -157,6 +151,43 @@ export abstract class Model {
    * The dictionary of booted models.
    */
   protected static booted: Record<string, boolean> = {};
+
+  /**
+   * Make the model readonly and disallow mitations.
+   */
+  public static readonly readonly: boolean = false;
+
+  protected get attributes(): Attributes {
+    return mergeDeep(this.originalAttributes, this.changedAttributes);
+  }
+
+  protected get relationships(): Relationships {
+    return {
+      ...this.originalRelationships,
+      ...this.changedRelationships,
+    };
+  }
+
+  /**
+   * Model fields that are attributes.
+   */
+  public static get fieldAttributes(): string[] {
+    return Object.keys(this.getAttributeFields());
+  }
+
+  /**
+   * Model fields that are relationships.
+   */
+  public static get fieldRelationships(): string[] {
+    return Object.keys(this.getRelatioshipFields());
+  }
+
+  /**
+   * Get the entity for this model.
+   */
+  get $modelKey(): string {
+    return this.$self().modelKey;
+  }
 
   constructor(attributes: Attributes = {}) {
     this.$boot();
@@ -217,11 +248,11 @@ export abstract class Model {
 
   /**
    * Get the registered apollo client
-   * @returns {ApolloClient<any>}
+   * @returns {ClientConfig['apollo']}
    */
-  static apollo(): ApolloClient<any> {
+  static apollo(): ClientConfig["apollo"] {
     if (!this.client) {
-      error(`Cannot access apollo client on ${this.entity}`);
+      error(`Cannot access apollo client on model [${this.modelKey}]`);
     }
     return this.client.apollo;
   }
@@ -310,20 +341,6 @@ export abstract class Model {
         this.fieldSchema[this.modelKey][key] = attribute;
       }
     }
-  }
-
-  /**
-   * Model fields that are attributes.
-   */
-  public static get fieldAttributes(): string[] {
-    return Object.keys(this.getAttributeFields());
-  }
-
-  /**
-   * Model fields that are relationships.
-   */
-  public static get fieldRelationships(): string[] {
-    return Object.keys(this.getRelatioshipFields());
   }
 
   /**
@@ -776,13 +793,6 @@ export abstract class Model {
   }
 
   /**
-   * Get the entity for this model.
-   */
-  get $modelKey(): string {
-    return this.$self().modelKey;
-  }
-
-  /**
    * Start a new query.
    *
    * @returns {Query}
@@ -847,6 +857,15 @@ export abstract class Model {
     }
 
     return this;
+  }
+
+  /**
+   * Clone the model and return a new instance.
+   *
+   * @returns {Model}
+   */
+  public $clone(): this {
+    return this.$self().make().$copy(this);
   }
 
   /**
@@ -1109,7 +1128,7 @@ export abstract class Model {
         attribute,
         this.attributes,
         field
-      ) || $default
+      ) ?? $default
     );
   }
 

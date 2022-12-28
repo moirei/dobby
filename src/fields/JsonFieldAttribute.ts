@@ -1,4 +1,5 @@
 import { get } from "lodash";
+import { jsonValue } from "../utils/model";
 import { Model } from "../Model";
 import FieldAttribute from "./FieldAttribute";
 const Observer = require("observable-slim");
@@ -49,13 +50,11 @@ export default class JsonFieldAttribute extends FieldAttribute {
    * @returns
    */
   public accessor = (value: string, model: Model, key: string) => {
-    const json = this.getJsonAttributeValue(key, model, () =>
-      value ? JSON.parse(value) : null
-    );
+    const json = this.getJsonAttributeValue(key, model, () => jsonValue(value));
     if (model.$isDirty(key)) {
       const original = model.$getOriginal(key);
       if (original) {
-        Object.assign(json, JSON.parse(original));
+        Object.assign(json, jsonValue(value));
       }
     }
     return json;

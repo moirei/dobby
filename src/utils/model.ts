@@ -1,5 +1,6 @@
 import { Model } from "../Model";
 import { Collection } from "../Collection";
+import { isString } from "lodash";
 
 /**
  * Extract the items of a array/collection relationship
@@ -64,4 +65,16 @@ export const extractArrayRelationshipChanges = (
     update,
     deleting,
   };
+};
+
+/**
+ * Get the JSON value of a possiblly stringified JSON
+ * @param {*} value
+ * @returns {object}
+ */
+export const jsonValue = <T>(value: T | string): T => {
+  if (isString(value)) {
+    return JSON.parse(value);
+  }
+  return value;
 };

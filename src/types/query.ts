@@ -77,3 +77,10 @@ export interface QueryInclude {
 export interface QueryCallback<M extends ModelType> {
   (query: Query<M>): void | Query<M>;
 }
+
+export declare type FetchPolicy =
+  | "cache-first"
+  | "network-only"
+  | "cache-only"
+  | "no-cache"
+  | "standby";

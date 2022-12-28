@@ -72,7 +72,40 @@ class User extends Model{
 
 ```
 
-Ideally, you might to extend the base model with your app's defaults.
+If you're using decorators, you can create custom decorators to apply your custom field types.
+
+```typescript
+import { FieldDecorator } from '@moirei/dobby'
+import FieldBuilder from './FieldBuilder'
+
+/**
+ * Create a datetime (moment) attribute.
+ *
+ * @returns {FieldDecorator}
+ */
+export function datetime(): FieldDecorator {
+  return (model, key) => {
+    const builder = model.$self().getSchemaBuilder() as FieldBuilder
+    builder.datetime(key)
+  }
+}
+
+...
+class User extends Model{
+  static entity = 'User';
+
+  ...
+
+  @datetime()
+  created_at!: Moment;
+
+  static fieldBuilder() {
+    return FieldBuilder;
+  }
+}
+```
+
+Ideally, you might find it more useful to extend the base model with your app's defaults.
 
 ```javascript
 abstract class BaseModel extends Model{

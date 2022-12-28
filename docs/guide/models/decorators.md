@@ -1,6 +1,6 @@
 # Field Decorators
 
-Property decorators provide Typescript users a better typing support when defining model fields. With decorators, class properties can be registered as field attributes or relationships.
+Property decorators is the recommended method for Typescript. It provides Typescript users a better typing support when defining model fields. With decorators, class properties can be registered as field attributes or relationships.
 
 ```javascript
 import { Model, id, string } from '@moirei/dobby'
