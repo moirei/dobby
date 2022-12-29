@@ -1,7 +1,7 @@
 import { isEqual, transform, isObject, get } from "lodash";
 import deepmerge from "deepmerge";
 import { Attributes, Collectable, Relationships } from "./../types";
-import { Model } from "src";
+import { Collection, Model } from "../";
 
 export const empty = (value: any) => {
   if (typeof value === "boolean") return false;
@@ -154,3 +154,33 @@ export function mergeDeep<A, B>(a: A, b: B): A & B {
     arrayMerge: (_dest, source, _options) => source,
   });
 }
+
+/**
+ * Set array with new array while
+ * keeping its object ref.
+ *
+ * @param {T[]} target
+ * @param {T[]} value
+ * @returns {T[]}
+ */
+export const setArray = <T>(target: T[], value: T[]): T[] => {
+  if (!Array.isArray(target)) {
+    return target;
+  }
+  while (target.length > 0) {
+    target.pop();
+  }
+  value.forEach((x) => target.push(x));
+  return target;
+};
+
+/**
+ * Check if the object is a Collection.
+ *
+ * @param value The value to check.
+ * @return Returns true if value is Collection, else false.
+ */
+export const isCollection = (value: any): value is Collection => {
+  // @ts-ignore
+  return Array.isArray(value) && value.original;
+};

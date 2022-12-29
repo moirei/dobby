@@ -92,6 +92,23 @@ describe("Collection Dirtiness", () => {
     expect(collection.$isDeepDirty()).to.be.true;
   });
 
+  it("should be dirty when model childred has a new child", () => {
+    const [user] = fakeUsers();
+
+    const [commentA, commentB] = fakeComments(2);
+    user.$attach("comments", [commentA]);
+
+    expect(user.$isDeepDirty()).to.be.false;
+
+    user.comments.push(commentB);
+
+    expect(user.$isDeepDirty()).to.be.true;
+
+    user.$keepChanges();
+
+    expect(user.$isDeepDirty()).to.be.false;
+  });
+
   it("should NOT be dirty after changes kept", () => {
     const [userA, ...users] = fakeUsers(3);
 

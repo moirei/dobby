@@ -27,8 +27,10 @@ import {
   deepDiff,
   error,
   isChanged,
+  isCollection,
   isRelationshipsChanged,
   mergeDeep,
+  setArray,
 } from "./utils";
 import { Client } from "./graphql/Client";
 import { FieldBuilder, FieldAttribute, RelationshipAttribute } from "./fields";
@@ -1064,15 +1066,16 @@ export abstract class Model {
             relationship
           ] as Model[];
 
-          relationshipModel.length = 0; // clear array, keep object ref
-          (data as Array<Model | Attributes>).forEach((dataEntry) => {
-            relationshipModel.push(
-              // @ts-ignore
-              dataEntry instanceof Model
-                ? dataEntry
-                : field.model.make(dataEntry)
-            );
+          const items = (data as Array<Model | Attributes>).map((dataEntry) => {
+            return dataEntry instanceof Model
+              ? dataEntry
+              : field.model.make(dataEntry);
           });
+
+          setArray(relationshipModel, items);
+          if (isCollection(relationshipModel)) {
+            setArray(relationshipModel["original"], items);
+          }
         } else {
           const relationshipModel = this.originalRelationships[
             relationship

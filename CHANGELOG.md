@@ -85,3 +85,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - fix: should allow registering multiple models (with different `modelKey`) but of the same `entity`
 - fix: `$getAttribute` nullish default
 - feat: add `$clone` method
+-
+
+## 1.7.1
+
+- fix: `$isDeepDirty` should detect new child in Collection relationship
+- fix: copied model content using `$copy` should not be dirty

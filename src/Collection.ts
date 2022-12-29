@@ -1,16 +1,19 @@
+import { get, has } from "lodash";
 import { Model } from "./Model";
 
 export class Collection<T extends Model = Model> extends Array<T> {
-  // @ts-ignore
-  private original: T[];
+  private original!: T[];
 
   constructor(items: T[] = []) {
     super();
     if (items.length) {
       items.forEach((item) => this.push(item));
     }
+
+    const original = get(items, "original");
+
     Object.defineProperty(this, "original", {
-      value: items,
+      value: Array.isArray(original) ? original : items,
       configurable: false,
     });
   }

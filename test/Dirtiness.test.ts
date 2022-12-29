@@ -236,6 +236,44 @@ describe("Relationship fields", () => {
     post.$keepChanges();
     expect(post.$isDeepDirty()).to.be.false;
   });
+
+  it("expects copied model relationship to not be dirty", () => {
+    const [comment] = fakeComments();
+    const post1 = new Post({
+      id: faker.datatype.uuid(),
+      title: faker.lorem.text(),
+      body: faker.lorem.sentence(),
+      published: faker.datatype.boolean(),
+      comments: [comment],
+    });
+
+    const post2 = new Post();
+
+    post2.$copy(post1);
+
+    expect(post2.$isDeepDirty()).to.be.false;
+    expect(post2.$isDirty("comments")).to.be.false;
+  });
+
+  it("expects copied model relationship to not be dirty [if already set]", () => {
+    const [comment] = fakeComments();
+    const post1 = new Post({
+      id: faker.datatype.uuid(),
+      title: faker.lorem.text(),
+      body: faker.lorem.sentence(),
+      published: faker.datatype.boolean(),
+      comments: [comment],
+    });
+
+    const post2 = new Post({
+      comments: [],
+    });
+
+    post2.$copy(post1);
+
+    expect(post2.$isDeepDirty()).to.be.false;
+    expect(post2.$isDirty("comments")).to.be.false;
+  });
 });
 
 describe("JSON fields", () => {
