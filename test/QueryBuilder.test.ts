@@ -1,4 +1,8 @@
 import { expect } from "chai";
+import ApolloClient from "apollo-client";
+import { HttpLink } from "apollo-link-http";
+import { InMemoryCache } from "apollo-cache-inmemory";
+import * as fetch from "cross-fetch";
 import { Query, Client, Model, FieldBuilder, id, model } from "../src";
 import { User, Post } from "./models";
 
@@ -274,9 +278,18 @@ describe("Query Proxy", () => {
     }
   }
 
-  const client = new Client({
-    url: "https://graphql-demo.mead.io",
+  const apolloClient = new ApolloClient({
+    link: new HttpLink({
+      ...fetch,
+      uri: "https://graphql-demo.mead.io",
+    }),
+    cache: new InMemoryCache(),
   });
+
+  const client = new Client({
+    graphQlClient: apolloClient,
+  });
+
   client.register(User);
 
   it("should have dynamic queries enabled", async () => {

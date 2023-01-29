@@ -20,7 +20,7 @@ import {
   Relationships,
   Collectable,
   FetchPolicy,
-  ClientConfig,
+  GraphQlClient,
 } from "./types";
 import {
   addQueryOptions,
@@ -35,9 +35,10 @@ import {
 import { Client } from "./graphql/Client";
 import { FieldBuilder, FieldAttribute, RelationshipAttribute } from "./fields";
 import { Collection } from "./Collection";
-import ApolloClient from "apollo-client";
 
 export abstract class Model {
+  [field: string]: any;
+
   private static $_entity: string;
   private static $_modelKey: string;
 
@@ -250,14 +251,14 @@ export abstract class Model {
   }
 
   /**
-   * Get the registered apollo client
-   * @returns {ApolloClient<any>}
+   * Get the registered GraphQL client
+   * @returns {GraphQlClient}
    */
-  static apollo(): ApolloClient<any> {
+  static graphQlClient(): GraphQlClient {
     if (!this.client) {
-      error(`Cannot access apollo client on model [${this.modelKey}]`);
+      error(`Cannot access client on model [${this.modelKey}]`);
     }
-    return this.client.apollo;
+    return this.client.graphQlClient;
   }
 
   /**
@@ -457,7 +458,7 @@ export abstract class Model {
    * Start a new query with specific fields selected.
    *
    * @param {...string|string[]} selects
-   * @returns {Query<ModelConstructor<T>>}
+   * @returns {Query<T>}
    */
   static select<T extends ModelType>(
     this: T,

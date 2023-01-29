@@ -1,6 +1,9 @@
 import { expect } from "chai";
 import { DocumentNode } from "graphql";
-import { ApolloQueryResult, FetchPolicy } from "apollo-client";
+import { ApolloClient, ApolloQueryResult, FetchPolicy } from "apollo-client";
+import { HttpLink } from "apollo-link-http";
+import { InMemoryCache } from "apollo-cache-inmemory";
+import * as fetch from "cross-fetch";
 import { Client, Model, FieldBuilder } from "../src";
 
 class TestClient extends Client {
@@ -36,6 +39,14 @@ class TestClient extends Client {
   }
 }
 
+const apolloClient = new ApolloClient({
+  link: new HttpLink({
+    ...fetch,
+    uri: "https://graphql-demo.mead.io",
+  }),
+  cache: new InMemoryCache(),
+});
+
 describe("Client CRUD", () => {
   class User extends Model {
     static get modelKey() {
@@ -49,7 +60,10 @@ describe("Client CRUD", () => {
     }
   }
 
-  const client = new TestClient();
+  const client = new TestClient({
+    graphQlClient: apolloClient,
+  });
+
   client.register(User);
 
   it("should build and execute create operation", async () => {
@@ -218,7 +232,10 @@ describe("Client CRUD", () => {
       }
     }
 
-    const client = new CreateTestClient();
+    const client = new CreateTestClient({
+      graphQlClient: apolloClient,
+    });
+
     client.register(User);
 
     const user = await User.create({ name: "James" });
@@ -244,7 +261,10 @@ describe("Client CRUD", () => {
       }
     }
 
-    const client = new CreateManyTestClient();
+    const client = new CreateManyTestClient({
+      graphQlClient: apolloClient,
+    });
+
     client.register(User);
 
     const [user] = await User.createMany([{ name: "James" }]);
@@ -271,7 +291,10 @@ describe("Client CRUD", () => {
       }
     }
 
-    const client = new UpsertTestClient();
+    const client = new UpsertTestClient({
+      graphQlClient: apolloClient,
+    });
+
     client.register(User);
 
     const user = await User.upsert({ id: 1 }, { name: "James" });
@@ -297,7 +320,10 @@ describe("Client CRUD", () => {
       }
     }
 
-    const client = new UpdateTestClient();
+    const client = new UpdateTestClient({
+      graphQlClient: apolloClient,
+    });
+
     client.register(User);
 
     const user = await User.update({ id: 1 }, { name: "James" });

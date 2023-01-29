@@ -1,6 +1,9 @@
-import ApolloClient from "apollo-client";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
+import ApolloClient from "apollo-client";
+import { HttpLink } from "apollo-link-http";
+import { InMemoryCache } from "apollo-cache-inmemory";
+import * as fetch from "cross-fetch";
 import { plural } from "pluralize";
 import {
   DefaultAdapter,
@@ -27,8 +30,16 @@ class TestAdapter extends DefaultAdapter {
   }
 }
 
+const apolloClient = new ApolloClient({
+  link: new HttpLink({
+    ...fetch,
+    uri: "https://graphql-demo.mead.io",
+  }),
+  cache: new InMemoryCache(),
+});
+
 const client = new Client({
-  url: "https://graphql-demo.mead.io",
+  graphQlClient: apolloClient,
 });
 
 client.register(User);
@@ -37,9 +48,11 @@ client.register(Comment);
 
 describe("Client Instance", () => {
   it("should have default adapter and apollo client", () => {
-    const client = new Client();
+    const client = new Client({
+      graphQlClient: apolloClient,
+    });
     expect(client.adapter).to.be.instanceOf(DefaultAdapter);
-    expect(client.apollo).to.be.instanceOf(ApolloClient);
+    expect(client.graphQlClient).to.be.instanceOf(ApolloClient);
   });
 
   it("should register models", () => {
@@ -100,7 +113,7 @@ describe("Client Custom Adapter", () => {
 
     const adapter = new TestAdapter();
     const client = new Client({
-      url: "https://graphql-demo.mead.io",
+      graphQlClient: apolloClient,
       adapter,
     });
     client.register(PostModel);

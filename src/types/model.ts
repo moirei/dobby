@@ -1,8 +1,10 @@
-import { RelationshipAttribute } from "../fields";
 import { Adapter } from "../adapters";
 import { Model } from "../Model";
-import { Collection } from "src/Collection";
 import { Collectable } from ".";
+
+export type Constructure<T, TArgs extends any[] = any[]> = {
+  new (...args: TArgs): T;
+};
 
 export type ModelType = typeof Model;
 

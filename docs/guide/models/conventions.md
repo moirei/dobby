@@ -246,7 +246,7 @@ Note that anonymous variables is only allowed for primitive types.
 
 ## Fetch Policy
 
-Models can configure their fetch policy for Apollo Client. By default this is set to `no-cache`. Fetch policies can also be changes at the query level.
+Models can configure their fetch policy for Apollo Clients. By default this is set to `no-cache`. Fetch policies can also be changes at the query level.
 
 ```javascript
 class User extends Model{

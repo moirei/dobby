@@ -94,3 +94,8 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ## 1.7.2
 
 - feat: add custom iterator for Model object
+
+## 1.8.0
+
+- refactor: remove apollo client dependency
+- fix: model typings

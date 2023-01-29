@@ -8,11 +8,6 @@ export enum QueryType {
   SUBSCRIPTION = "subscription",
 }
 
-export type QueryOptions = {
-  select?: string[];
-  include?: string[];
-};
-
 export type SelectOptions = string | string[];
 
 export interface QueryVariable {
@@ -78,9 +73,11 @@ export interface QueryCallback<M extends ModelType> {
   (query: Query<M>): void | Query<M>;
 }
 
-export declare type FetchPolicy =
+export type FetchPolicy =
   | "cache-first"
   | "network-only"
   | "cache-only"
   | "no-cache"
   | "standby";
+
+export type ErrorPolicy = "none" | "ignore" | "all";

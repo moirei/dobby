@@ -9,13 +9,11 @@ export const findManyHook: Adapter["findMany"] = (query, model) => {
 export class User extends Model {
   static entity = "User";
   static queryAttributes: string[] = ["id", "name"];
-
   id!: string;
   name!: string;
   email!: string;
   posts!: Post[];
   comments!: Comment[];
-
   static fields(f: FieldBuilder) {
     f.id();
     f.string("name");

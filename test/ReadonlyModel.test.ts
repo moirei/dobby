@@ -1,5 +1,9 @@
 import chai, { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
+import ApolloClient from "apollo-client";
+import { HttpLink } from "apollo-link-http";
+import { InMemoryCache } from "apollo-cache-inmemory";
+import * as fetch from "cross-fetch";
 import { Client, QueryType } from "../src";
 import { Post } from "./models";
 
@@ -16,9 +20,18 @@ describe("Readonly Model", () => {
   const errorMessage = "[Dobby] Cannot mutate readonly model [ReadonlyPost]";
 
   before(() => {
-    const client = new Client({
-      url: "https://graphql-demo.mead.io",
+    const apolloClient = new ApolloClient({
+      link: new HttpLink({
+        ...fetch,
+        uri: "https://graphql-demo.mead.io",
+      }),
+      cache: new InMemoryCache(),
     });
+
+    const client = new Client({
+      graphQlClient: apolloClient,
+    });
+
     client.register(ReadonlyPost);
   });
 

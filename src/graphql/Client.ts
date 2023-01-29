@@ -1,12 +1,15 @@
-import { ApolloClient } from "apollo-client";
-import { InMemoryCache } from "apollo-cache-inmemory";
-import { HttpLink } from "apollo-link-http";
+import { DocumentNode } from "graphql";
 import gql from "graphql-tag";
 import * as fetch from "cross-fetch";
 import { error } from "../utils";
-import { ModelType, QueryType, ClientConfig, FetchPolicy } from "../types";
+import {
+  ModelType,
+  QueryType,
+  ClientConfig,
+  FetchPolicy,
+  GraphQlClient,
+} from "../types";
 import { Adapter, DefaultAdapter } from "../adapters";
-import { DocumentNode } from "graphql";
 
 export class Client {
   public readonly name: string;
@@ -14,11 +17,11 @@ export class Client {
 
   /**
    * The ApolloClient instance
-   * @type {ClientConfig['apollo']}
+   * @type {GraphQlClient}
    */
-  public readonly apollo!: ApolloClient<any>;
+  public readonly graphQlClient!: GraphQlClient;
 
-  constructor(config: ClientConfig = {}) {
+  constructor(config: ClientConfig) {
     this.name = config.name || "default";
 
     if (config.adapter) {
@@ -27,23 +30,11 @@ export class Client {
       this.adapter = new DefaultAdapter();
     }
 
-    if (config.apollo) {
-      this.apollo = config.apollo;
-    } else {
-      const apollo_client = require("apollo-client");
-      this.apollo = new apollo_client.ApolloClient({
-        link:
-          config.link ||
-          new HttpLink({
-            ...fetch,
-            uri: config.url || "/graph",
-            credentials: config.credentials || "same-origin",
-            useGETForQueries: config.useGETForQueries || false,
-          }),
-        cache: config.cache || new InMemoryCache(),
-        connectToDevTools: config.debugMode || false,
-      });
+    if (!config.graphQlClient) {
+      error("GraphQL client is required");
     }
+
+    this.graphQlClient = config.graphQlClient;
   }
 
   /**
@@ -100,7 +91,7 @@ export class Client {
     variables?: Record<string, any>,
     fetchPolicy?: FetchPolicy
   ) {
-    const response = await this.apollo.query({
+    const response = await this.graphQlClient.query({
       query: gql`
         ${query}
       `,
@@ -122,7 +113,7 @@ export class Client {
     query: string | DocumentNode,
     variables?: Record<string, any>
   ) {
-    const response = await this.apollo.mutate({
+    const response = await this.graphQlClient.mutate({
       mutation: gql`
         ${query}
       `,

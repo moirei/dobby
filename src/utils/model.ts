@@ -32,8 +32,8 @@ export const extractArrayRelationshipChanges = (
 
     type T = Record<string, Model>;
 
-    const all: T = relationships.reduce(
-      (acc, f) => ((acc[f.$getKey()] = f), acc),
+    const all: T = (relationships as Model[]).reduce(
+      (acc: any, f: any) => ((acc[f.$getKey()] = f), acc),
       originalItems.reduce((acc, f) => ((acc[f.$getKey()] = f), acc), {} as T)
     );
 
