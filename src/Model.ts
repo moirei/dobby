@@ -35,6 +35,7 @@ import {
 import { Client } from "./graphql/Client";
 import { FieldBuilder, FieldAttribute, RelationshipAttribute } from "./fields";
 import { Collection } from "./Collection";
+import ApolloClient from "apollo-client";
 
 export abstract class Model {
   private static $_entity: string;
@@ -250,9 +251,9 @@ export abstract class Model {
 
   /**
    * Get the registered apollo client
-   * @returns {ClientConfig['apollo']}
+   * @returns {ApolloClient<any>}
    */
-  static apollo(): ClientConfig["apollo"] {
+  static apollo(): ApolloClient<any> {
     if (!this.client) {
       error(`Cannot access apollo client on model [${this.modelKey}]`);
     }
@@ -1474,5 +1475,13 @@ export abstract class Model {
    */
   public $relationshipFields(): Dictionary<RelationshipAttribute> {
     return this.$self().getRelatioshipFields();
+  }
+
+  *[Symbol.iterator]() {
+    const fields = Object.keys(this.$getFields());
+
+    for (const field in fields) {
+      yield this[field as keyof this];
+    }
   }
 }

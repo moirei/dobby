@@ -9,12 +9,13 @@
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,
-    "lib": [ "es2019" ],
+    "noImplicitThis": true,
+    "lib": ["es2019"],
     "moduleResolution": "node",
     "module": "commonjs",
     "target": "es2018",
     "sourceMap": true,
-    "strict": true,
+    "strict": true
   },
-  "include": ["src"],
+  "include": ["src"]
 }
