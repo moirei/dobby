@@ -1,6 +1,6 @@
 {
   "name": "@moirei/dobby",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "GraphQL data models made easy.",
   "private": false,
   "main": "build/index.js",
