@@ -99,3 +99,5 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 - refactor: remove apollo client dependency
 - fix: model typings
+- fix: remove cross-fetch as dependency
+- feat: accept graphql client provider function

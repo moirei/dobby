@@ -4,7 +4,7 @@ import { FetchPolicy, ErrorPolicy } from "./query";
 
 export interface ClientConfig {
   name?: string;
-  graphQlClient: GraphQlClient;
+  graphQlClient: GraphQlClient | GraphQlClientProvider;
   adapter?: Adapter;
 }
 
@@ -31,4 +31,8 @@ export interface MutationOptions {
 export interface GraphQlClient {
   query(options: QueryOptions): Promise<ExecutionResult>;
   mutate(options: MutationOptions): Promise<ExecutionResult>;
+}
+
+export interface GraphQlClientProvider {
+  (): GraphQlClient;
 }

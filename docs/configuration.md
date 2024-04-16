@@ -13,6 +13,8 @@ const apolloClient = new ApolloClient({
 
 const client = new Client({
   graphQlClient: apolloClient, // accepts Apollo Client or and instance of GraphQlClient
+  // or
+  graphQlClient: () => apolloClient, // also, accepts a provider function
 });
 
 client.register(User);

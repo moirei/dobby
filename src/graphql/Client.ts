@@ -1,6 +1,5 @@
 import { DocumentNode } from "graphql";
 import gql from "graphql-tag";
-import * as fetch from "cross-fetch";
 import { error } from "../utils";
 import {
   ModelType,
@@ -8,18 +7,28 @@ import {
   ClientConfig,
   FetchPolicy,
   GraphQlClient,
+  GraphQlClientProvider,
 } from "../types";
 import { Adapter, DefaultAdapter } from "../adapters";
+import { isFunction } from "lodash";
 
 export class Client {
   public readonly name: string;
   public readonly adapter: Adapter;
 
   /**
+   * The ApolloClient provider
+   * @type {GraphQlClientProvider}
+   */
+  private readonly graphQlClientProvider!: GraphQlClientProvider;
+
+  /**
    * The ApolloClient instance
    * @type {GraphQlClient}
    */
-  public readonly graphQlClient!: GraphQlClient;
+  public get graphQlClient(): GraphQlClient {
+    return this.graphQlClientProvider();
+  }
 
   constructor(config: ClientConfig) {
     this.name = config.name || "default";
@@ -34,7 +43,9 @@ export class Client {
       error("GraphQL client is required");
     }
 
-    this.graphQlClient = config.graphQlClient;
+    this.graphQlClientProvider = isFunction(config.graphQlClient)
+      ? (config.graphQlClient as GraphQlClientProvider)
+      : () => config.graphQlClient as GraphQlClient;
   }
 
   /**
