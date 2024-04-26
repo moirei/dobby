@@ -101,3 +101,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - fix: model typings
 - fix: remove cross-fetch as dependency
 - feat: accept graphql client provider function
+
+## 1.8.1
+
+- fix: Collection `toJSON` to handle non Dobby items

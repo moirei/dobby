@@ -99,6 +99,12 @@ export class Collection<T extends Model = Model> extends Array<T> {
    * @returns {any}
    */
   toJSON(): any {
-    return this.map((item: T) => item.$toJson());
+    return this.map((item: T) => {
+      // check for method. In the event we've collected non Dobby models.
+      if (item.$toJson) {
+        return item.$toJson();
+      }
+      return item;
+    });
   }
 }

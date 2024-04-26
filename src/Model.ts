@@ -183,7 +183,7 @@ export abstract class Model {
    * Model fields that are relationships.
    */
   public static get fieldRelationships(): string[] {
-    return Object.keys(this.getRelatioshipFields());
+    return Object.keys(this.getRelationshipFields());
   }
 
   /**
@@ -239,6 +239,7 @@ export abstract class Model {
       } else {
         const options: PropertyDescriptor = {
           get: () => this.$getAttribute(name, field.getDefault()),
+          // writable: !field.readonly(),
         };
         if (field.isReadonly) {
           this.readonlyAttributes.push(name);
@@ -312,7 +313,7 @@ export abstract class Model {
    *
    * @return {Dictionary<RelationshipAttribute>}
    */
-  public static getRelatioshipFields(): Dictionary<RelationshipAttribute> {
+  public static getRelationshipFields(): Dictionary<RelationshipAttribute> {
     const fields = this.getFields() as Dictionary<RelationshipAttribute>;
     return pickBy(fields, (field) => field.isRelationship);
   }
@@ -366,7 +367,7 @@ export abstract class Model {
   public static getRelationshipField(
     name: string
   ): RelationshipAttribute | null {
-    return this.getRelatioshipFields()[name];
+    return this.getRelationshipFields()[name];
   }
 
   /**
@@ -1475,7 +1476,7 @@ export abstract class Model {
    @return {Dictionary<RelationshipAttribute>}
    */
   public $relationshipFields(): Dictionary<RelationshipAttribute> {
-    return this.$self().getRelatioshipFields();
+    return this.$self().getRelationshipFields();
   }
 
   *[Symbol.iterator]() {
