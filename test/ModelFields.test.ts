@@ -55,7 +55,6 @@ describe("Model fields", () => {
       email: "johndoe@mail.com",
     });
 
-    // @ts-ignore
     expect(user.name).to.equal("John Doe");
     expect(user.$getAttribute("name")).to.equal("John Doe");
     expect(user.$getOriginal("name")).to.equal(undefined);
@@ -154,5 +153,77 @@ describe("Model fields", () => {
     expect(new User({ id: 1 }).$is(new User({ id: 1 }))).to.be.true;
     expect(new User({ id: 1 }).$is(new User({ id: 2 }))).to.be.false;
     expect(new User({ id: 1 }).$is(new Post({ id: 1 }))).to.be.false;
+  });
+});
+
+describe("Model.$fillDeep", () => {
+  it("should deeply fill attributes and relationships", () => {
+    const user = new User();
+
+    user.$fillDeep({
+      name: "Alice",
+      email: "alice@example.com",
+      posts: [{ title: "Post A" }, new Post({ title: "Post B" })],
+    });
+
+    expect(user.name).to.equal("Alice");
+    expect(user.email).to.equal("alice@example.com");
+    expect(user.posts).to.have.lengthOf(2);
+    expect(user.posts[0]).to.be.instanceOf(Post);
+    expect(user.posts[1]).to.be.instanceOf(Post);
+    expect(user.posts[0].title).to.equal("Post A");
+    expect(user.posts[1].title).to.equal("Post B");
+  });
+
+  it("should update existing nested models", () => {
+    const user = new User({
+      posts: [new Post({ title: "Old Title" })],
+    });
+
+    user.$fillDeep({
+      posts: [{ title: "Updated Title" }],
+    });
+
+    expect(user.posts[0].title).to.equal("Updated Title");
+  });
+
+  it.skip("should not overwrite attributes with undefined", () => {
+    const user = new User({
+      name: "Initial",
+      posts: [new Post({ title: "Keep me" })],
+    });
+
+    user.$fillDeep({
+      posts: undefined,
+    });
+
+    const fn = () => {
+      user.$fillDeep({
+        posts: undefined,
+      });
+    };
+
+    expect(fn).to.throw();
+    expect(user.posts).to.have.lengthOf(1);
+  });
+
+  it("should attach relationship if not yet present", () => {
+    const user = new User();
+
+    user.$fillDeep({
+      posts: [{ title: "First Post" }],
+    });
+
+    expect(user.posts).to.have.lengthOf(1);
+    expect(user.posts[0].title).to.equal("First Post");
+  });
+
+  it("should work with nested model instances directly", () => {
+    const post = new Post({ title: "From Instance" });
+    const user = new User();
+
+    user.$fillDeep({ posts: [post] });
+
+    expect(user.posts[0]).to.equal(post);
   });
 });

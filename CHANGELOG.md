@@ -105,3 +105,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ## 1.8.1
 
 - fix: Collection `toJSON` to handle non Dobby items
+
+## 1.9.0
+
+- feat: Add `$fillDeep` method to recursively fill model attributes and relationships

@@ -305,7 +305,7 @@ export abstract class Model {
    */
   public static getAttributeFields(): Dictionary<FieldAttribute> {
     const fields = this.getFields() as Dictionary<FieldAttribute>;
-    return pickBy(fields, (field) => !field.isRelationship);
+    return pickBy(fields, (field: FieldAttribute) => !field.isRelationship);
   }
 
   /**
@@ -315,7 +315,10 @@ export abstract class Model {
    */
   public static getRelationshipFields(): Dictionary<RelationshipAttribute> {
     const fields = this.getFields() as Dictionary<RelationshipAttribute>;
-    return pickBy(fields, (field) => field.isRelationship);
+    return pickBy(
+      fields,
+      (field: RelationshipAttribute) => field.isRelationship
+    );
   }
 
   /**
@@ -897,6 +900,45 @@ export abstract class Model {
     }
 
     this.changedAttributes = mergeDeep(this.changedAttributes, writable);
+
+    return this;
+  }
+
+  /**
+   * Fill the model attributes and nested models.
+   *
+   * @param {Attributes} attributes
+   * @returns {this}
+   */
+  public $fillDeep(attributes: Attributes): this {
+    this.$fill(attributes);
+
+    for (const attr in attributes) {
+      const field = this.$self().getRelationshipField(attr);
+
+      if (field) {
+        if (this[attr]) {
+          if (field.isList) {
+            if (Array.isArray(attributes[attr])) {
+              const items = (attributes[attr] as Array<Model | Attributes>).map(
+                (dataEntry) => {
+                  return dataEntry instanceof Model
+                    ? dataEntry
+                    : field.model.make(dataEntry);
+                }
+              );
+              setArray(this[attr], items);
+            } else {
+              error("Cannot assign non-array value to list field");
+            }
+          } else {
+            (this[attr] as Model).$fillDeep(attributes[attr]);
+          }
+        } else {
+          this.$attach(attr, attributes[attr]);
+        }
+      }
+    }
 
     return this;
   }

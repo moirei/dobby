@@ -193,6 +193,23 @@ user.$fill({
 
 Using `$fill`, JSON field receives an Object rather than a raw string.
 
+### Deep Filling Attributes and Relationships
+
+The `$fillDeep` method works like `$fill`, but additionally fills **nested relationships**, including both single and list-based relationships.
+
+This is especially useful when handling JSON responses from GraphQL that include nested structures.
+
+````javascript
+const user = new User();
+user.$fillDeep({
+  name: "John Doe",
+  email: "john@mail.com",
+  posts: [
+    { title: "First post" },
+    new Post({ title: "Second post" }),
+  ],
+});
+
 ### List Fields
 
 There are multiple ways to define a field (attribute or relationship) as a list.
@@ -219,7 +236,7 @@ class User extends Model {
     f.string('tags', { default: [] })
   }
 }
-```
+````
 
 Theses alternatives are available to all field types.
 
